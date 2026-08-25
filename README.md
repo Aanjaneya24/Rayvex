@@ -51,15 +51,10 @@ Then, to browse it (and to have real, live-received webhooks actually get
 processed):
 
 ```bash
-# terminal 1
 uvicorn apps.api.main:app --reload
 
-# terminal 2 — consumes case_processing messages the webhook endpoint
-# publishes; without this, a live webhook creates a case that never
-# advances past RECEIVED
 python -m apps.worker.consumer
 
-# terminal 3
 cd apps/web && npm install && npm run dev
 ```
 
@@ -80,7 +75,7 @@ migrates `rayvex` (`DATABASE_URL`), never `rayvex_test`:
 ```bash
 DATABASE_URL=postgresql+psycopg://rayvex:rayvex@localhost:55432/rayvex_test alembic upgrade head
 
-pytest          # 309 tests, all against real Postgres + Redis + RabbitMQ, no mocks
+pytest          
 ```
 
 Skipping this step fails every DB-touching test with `relation "cases"
