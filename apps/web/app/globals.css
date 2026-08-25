@@ -1,0 +1,150 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* UI-UX.md §2 — kept in sync with the doc, including the contrast-driven
+   adjustments below (measured against real WCAG AA, not assumed; see the
+   doc's §2 note for the exact ratios). Never hardcode these hex values in
+   a component; always reference the custom property.
+
+   Reskinned to match Razorpay's actual merchant dashboard reference
+   (--accent/--surface-1/--accent-muted/--text-primary/--text-secondary
+   below). --accent needed a real, measured adjustment: the literal
+   reference value (#4C6EF5) reads at only 4.32:1 on white and 3.84:1 on
+   --accent-muted, both below the 4.5:1 AA floor this doc requires (§10)
+   — darkened minimally to #4564DF (5.07:1 on white, 4.50:1 on
+   --accent-muted, the binding constraint) to actually clear it while
+   staying the same hue/family. The slightly-off-white --surface-0/
+   --surface-1 in this reskin also pushed --text-muted and the
+   --success/--warning/--danger -text variants (previously tuned against
+   pure white only) just under 4.5:1 — each re-darkened by the same
+   minimal amount, noted inline below. */
+:root {
+  --surface-0: #F7F8FA;
+  --surface-1: #FAFAFB;
+  --surface-2: #FFFFFF;
+  --border: rgba(10, 20, 40, 0.08);
+  --border-strong: rgba(10, 20, 40, 0.16);
+
+  --text-primary: #16181D;
+  --text-secondary: #6B7280;
+  --text-muted: #6F7278;      /* re-checked against the new --surface-0/--surface-1 (off-white, not pure white) — was 4.24:1 on --surface-0, below AA; darkened slightly further to 4.54:1 */
+
+  --accent: #4564DF;          /* reference #4C6EF5 was 4.32:1 on white / 3.84:1 on --accent-muted — below AA; darkened to 5.07:1 / 4.50:1 */
+  --accent-muted: #EEF1FE;
+  --on-accent: #FFFFFF;       /* text color for content placed on an --accent fill */
+
+  --success: #198663;         /* darkened from #1D9E75 — was 3.39:1 white-on-fill, now 4.53:1 */
+  --warning: #A66915;         /* darkened from #BA7517 — was 3.72:1 white-on-fill, now 4.51:1 */
+  --danger: #D14544;          /* darkened from #E24B4A — was 3.93:1 white-on-fill, now 4.52:1 */
+  --neutral-tag: #5F5E5A;
+
+  /* Plain-inline-text variants (error/confirmation messages, not
+     badges/buttons) — light mode used to be identical to the fill colors
+     above (fine against pure white); re-checked against the new,
+     slightly-off-white --surface-0/--surface-1 and all three dipped
+     just under 4.5:1 (4.53/4.53/4.53), so they're darkened a touch
+     further here too, independently of the fill colors (which stay put
+     — badges/buttons sit on their own solid fill, never on surface-0/1,
+     so they were never affected). Dark mode needs its own separate,
+     lighter value regardless, for the same reason --on-accent does: a
+     fill color dark/saturated enough for white button text is too dark
+     to read as text on a near-black surface, and no single value can do
+     both. */
+  --success-text: #188160;
+  --warning-text: #A06514;
+  --danger-text: #C94342;
+}
+
+/* "Built on CSS custom properties so light/dark mode is automatic"
+   (UI-UX.md §2) — automatic means it follows the OS/browser preference
+   by default, not merely that a token set exists for something to flip
+   later. The media query is the automatic half; `[data-mode="dark"]`
+   below is the same values again, as an explicit override the Sidebar's
+   toggle sets (components/Sidebar.tsx), so a user's manual choice always
+   wins over the system preference. */
+/* Dark-mode --accent (#5CA9FF) is deliberately NOT the same value as
+   light mode's: it has to read as text against a near-black surface
+   (contrast vs #182338 = 6.42:1), which is the opposite requirement from
+   light mode's --accent (has to read as *white text on top of it* at
+   4.5:1). No single hue satisfies both — confirmed by exhaustively
+   scanning the light->dark lightness range: nothing hits 4.5:1 against
+   both #FFFFFF and #182338 at once. --on-accent is the fix: it names
+   which foreground actually goes ON TOP of an --accent fill, and gets
+   its own per-mode value instead of assuming white always works. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-mode="light"]) {
+    --surface-0: #0B1220;
+    --surface-1: #121B2E;
+    --surface-2: #182338;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.16);
+    --text-primary: #F2F4F7;
+    --text-secondary: #A6ADB8;
+    --text-muted: #848A96;      /* lightened from #6B7280 — was 3.25:1 on dark surface-2, now 4.53:1 */
+    --accent: #5CA9FF;
+    --accent-muted: rgba(92, 169, 255, 0.12);
+    --on-accent: #0B1220;       /* white-on-#5CA9FF is only 2.45:1 — near-black instead, 8.57:1 */
+    /* Lightened for the inline-text role only — --success/--warning/
+       --danger fills stay as-is (badges/buttons already pass ≥4.5:1
+       white-on-fill in both themes; lightening them too would break
+       that). Was 3.47/3.48/3.48:1 as plain text on dark surface-2 —
+       below AA; now 4.58/4.56/4.55:1. */
+    --success-text: #3E9A7C;
+    --warning-text: #B48039;
+    --danger-text: #D96766;
+  }
+}
+
+[data-mode="dark"] {
+  --surface-0: #0B1220;
+  --surface-1: #121B2E;
+  --surface-2: #182338;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --text-primary: #F2F4F7;
+  --text-secondary: #A6ADB8;
+  --text-muted: #848A96;
+  --accent: #5CA9FF;
+  --accent-muted: rgba(92, 169, 255, 0.12);
+  --on-accent: #0B1220;
+  --success-text: #3E9A7C;
+  --warning-text: #B48039;
+  --danger-text: #D96766;
+}
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  background: var(--surface-0);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* UI-UX.md §7: "Page-to-page navigation | Simple fade, ~150ms." */
+@keyframes page-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-page-fade {
+  animation: page-fade 150ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
