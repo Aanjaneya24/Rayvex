@@ -1,0 +1,47 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: rayvex_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: rayvex
+      POSTGRES_PASSWORD: rayvex
+      POSTGRES_DB: rayvex
+    ports:
+      - "55432:5432"
+    volumes:
+      - rayvex_pg_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rayvex -d rayvex"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: rayvex_redis
+    restart: unless-stopped
+    ports:
+      - "63790:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: rayvex_rabbitmq
+    restart: unless-stopped
+    ports:
+      - "56720:5672"
+      - "15680:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  rayvex_pg_data:
