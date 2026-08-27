@@ -98,3 +98,36 @@ def test_pipeline_records_the_scripted_decision_as_an_agent_decision_row(db_sess
 
     row = db_session.query(AgentDecision).filter_by(case_id=case.id).one()
     assert row.model_backend == "scripted:no-llm-configured"
+
+
+def test_pipeline_uses_an_injected_action_executor_not_just_the_default(db_session, redis_client):
+    """Confirms the executor is genuinely swappable — not an unused
+    parameter — by injecting one that reports a real (non-simulated)
+    execution and checking that outcome actually reaches the transition
+    the pipeline writes."""
+    from models.enums import RecoveryAction as _RecoveryAction
+    from services.recovery.action_executor import ActionExecutionResult
+
+    class FakeRealExecutor:
+        def execute(self, action, *, case_id):
+            return ActionExecutionResult(action=action, simulated=False, detail="executed for real (test double)")
+
+    ensure_default_global_config(db_session)
+    ensure_default_recovery_config(db_session)
+    sm = RecoveryStateMachine(db_session)
+    case = make_received_case(sm)
+    insert_captured_event(db_session, case)
+
+    run_case_pipeline(
+        db_session, redis_client, case_id=case.id, correlation_id=uuid.uuid4(),
+        executor=FakeRealExecutor(),
+        scripted_decision=ScriptedDecision(
+            action=_RecoveryAction.RETRY, reason="transient timeout", confidence=0.9,
+            expected_recovery_value=900.0, risk_level=RiskLevel.LOW.value,
+        ),
+    )
+
+    executed_transition = next(t for t in sm.history(case.id) if t.to_state is CaseState.ACTION_EXECUTED)
+    assert executed_transition.actor == "system:action_executor"
+    assert executed_transition.evidence["simulated"] is False
+    assert executed_transition.reason == "executed for real (test double)"

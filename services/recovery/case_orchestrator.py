@@ -15,6 +15,7 @@ from services.payments.provider_factory import build_default_payment_provider
 from services.payments.verification import VerificationRunResult, run_verification
 from services.policy.config_repository import get_active_config
 from services.policy.engine import evaluate
+from services.recovery.action_executor import ActionExecutor, build_default_action_executor
 from services.recovery.action_gate import ActionGateResult, check_action_before_execution
 from services.recovery.policy_context_builder import build_policy_context
 from services.recovery.state_machine import RecoveryStateMachine
@@ -129,13 +130,17 @@ def get_agent_decision(
 
 def execute_and_verify(
     session: Session, provider: PaymentProvider, *, case_id: uuid.UUID, action: RecoveryAction,
-    correlation_id: uuid.UUID,
+    correlation_id: uuid.UUID, executor: ActionExecutor | None = None,
 ) -> VerificationRunResult:
+    executor = executor if executor is not None else build_default_action_executor()
+    result = executor.execute(action, case_id=case_id)
+
     sm = RecoveryStateMachine(session)
     sm.transition(
-        case_id, to_state=CaseState.ACTION_EXECUTED, reason=f"{action.value} executed (simulated — no Action Executor exists yet)",
-        actor="system:simulated_action_executor", correlation_id=correlation_id,
-        evidence={"action": action.value, "simulated": True},
+        case_id, to_state=CaseState.ACTION_EXECUTED, reason=result.detail,
+        actor="system:simulated_action_executor" if result.simulated else "system:action_executor",
+        correlation_id=correlation_id,
+        evidence={"action": action.value, "simulated": result.simulated},
     )
     sm.transition(
         case_id, to_state=CaseState.VERIFICATION_PENDING, reason="awaiting payment status confirmation",
@@ -147,6 +152,7 @@ def execute_and_verify(
 def run_case_pipeline(
     session: Session, redis_client: redis.Redis, *, case_id: uuid.UUID, correlation_id: uuid.UUID,
     llm=None, scripted_decision: ScriptedDecision | None = None, provider: PaymentProvider | None = None,
+    executor: ActionExecutor | None = None,
     risk_score: float = 0.1, untrusted_fields: dict | None = None, current_hour: int | None = None,
 ) -> CasePipelineResult:
     sm = RecoveryStateMachine(session)
@@ -187,6 +193,7 @@ def run_case_pipeline(
 
     verification_result = execute_and_verify(
         session, provider, case_id=case_id, action=decision.action, correlation_id=correlation_id,
+        executor=executor,
     )
     return CasePipelineResult(
         case=sm.get_case(case_id), decision=decision, gate_result=gate_result,
