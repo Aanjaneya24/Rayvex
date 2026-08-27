@@ -15,6 +15,7 @@ from models.enums import (
     ProviderMode,
     RecoveryAction,
     RiskLevel,
+    UserRole,
     VerificationOutcome,
 )
 from models.human_review_action import HumanReviewAction
@@ -27,6 +28,7 @@ from models.policy_decision import PolicyDecision
 from models.raw_webhook_event import RawWebhookEvent
 from models.recovery_config import RecoveryConfig
 from models.synthetic_recovery_outcome import SyntheticRecoveryOutcome
+from models.user import User
 
 __all__ = [
     "ABExperimentRun",
@@ -55,4 +57,6 @@ __all__ = [
     "RawWebhookEvent",
     "RecoveryConfig",
     "SyntheticRecoveryOutcome",
+    "User",
+    "UserRole",
 ]

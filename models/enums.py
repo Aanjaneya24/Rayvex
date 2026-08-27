@@ -84,3 +84,9 @@ class VerificationOutcome(str, Enum):
     STILL_PENDING = "STILL_PENDING"
     ESCALATED = "ESCALATED"
     ERROR = "ERROR"
+
+
+class UserRole(str, Enum):
+
+    VIEWER = "viewer"
+    REVIEWER = "reviewer"
