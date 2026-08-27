@@ -8,14 +8,27 @@ from sqlalchemy.orm import sessionmaker
 
 from models.session import make_engine
 from services.ingestion.queue import (
-    CASE_PROCESSING_DEAD_LETTER_QUEUE,
-    CASE_PROCESSING_QUEUE,
+    case_processing_dead_letter_queue_name,
+    case_processing_queue_name,
     declare_topology,
     make_connection as make_rabbitmq_connection,
 )
 from services.policy.redis_client import make_redis_client
 
 load_dotenv()
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _isolated_case_processing_queue():
+    # Applied to every test in the suite, not just ones that use
+    # rabbitmq_channel directly — anything that goes through the real
+    # webhook route (e.g. test_api.py's TestClient) also publishes through
+    # services/ingestion/queue.py, which resolves this name at call time.
+    # Without this, running the test suite while a real worker process is
+    # consuming the production "case_processing" queue races every test
+    # that publishes/reads it: the live worker can consume a test's
+    # message before the test's own assertion gets to it.
+    os.environ["CASE_PROCESSING_QUEUE_NAME"] = "case_processing_test"
 
 
 @pytest.fixture(scope="session")
@@ -80,9 +93,11 @@ def rabbitmq_channel():
     connection = make_rabbitmq_connection(url)
     channel = connection.channel()
     declare_topology(channel)
-    channel.queue_purge(CASE_PROCESSING_QUEUE)
-    channel.queue_purge(CASE_PROCESSING_DEAD_LETTER_QUEUE)
+    queue = case_processing_queue_name()
+    dead_letter_queue = case_processing_dead_letter_queue_name()
+    channel.queue_purge(queue)
+    channel.queue_purge(dead_letter_queue)
     yield channel
-    channel.queue_purge(CASE_PROCESSING_QUEUE)
-    channel.queue_purge(CASE_PROCESSING_DEAD_LETTER_QUEUE)
+    channel.queue_purge(queue)
+    channel.queue_purge(dead_letter_queue)
     connection.close()

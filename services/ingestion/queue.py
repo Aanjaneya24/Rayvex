@@ -8,9 +8,28 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-CASE_PROCESSING_QUEUE = "case_processing"
-CASE_PROCESSING_DEAD_LETTER_QUEUE = "case_processing.dead"
-_DEAD_LETTER_EXCHANGE = "case_processing.dlx"
+_DEFAULT_QUEUE = "case_processing"
+_DEAD_LETTER_EXCHANGE_SUFFIX = ".dlx"
+_DEAD_LETTER_QUEUE_SUFFIX = ".dead"
+
+
+def case_processing_queue_name() -> str:
+    """Resolved at call time, not import time, and overridable via
+    CASE_PROCESSING_QUEUE_NAME — this is what lets the test suite use a
+    queue name completely separate from the one a real, independently
+    running worker process consumes. Without this, a live worker started
+    for manual testing races every test that publishes/reads the queue
+    directly, consuming test messages before the test's own assertions
+    can see them."""
+    return os.environ.get("CASE_PROCESSING_QUEUE_NAME", _DEFAULT_QUEUE)
+
+
+def case_processing_dead_letter_queue_name() -> str:
+    return case_processing_queue_name() + _DEAD_LETTER_QUEUE_SUFFIX
+
+
+def _dead_letter_exchange_name() -> str:
+    return case_processing_queue_name() + _DEAD_LETTER_EXCHANGE_SUFFIX
 
 
 def get_rabbitmq_url() -> str:
@@ -25,12 +44,16 @@ def make_connection(url: str | None = None) -> pika.BlockingConnection:
 
 
 def declare_topology(channel) -> None:
-    channel.exchange_declare(exchange=_DEAD_LETTER_EXCHANGE, exchange_type="fanout", durable=True)
-    channel.queue_declare(queue=CASE_PROCESSING_DEAD_LETTER_QUEUE, durable=True)
-    channel.queue_bind(queue=CASE_PROCESSING_DEAD_LETTER_QUEUE, exchange=_DEAD_LETTER_EXCHANGE)
+    queue = case_processing_queue_name()
+    dead_letter_queue = case_processing_dead_letter_queue_name()
+    exchange = _dead_letter_exchange_name()
+
+    channel.exchange_declare(exchange=exchange, exchange_type="fanout", durable=True)
+    channel.queue_declare(queue=dead_letter_queue, durable=True)
+    channel.queue_bind(queue=dead_letter_queue, exchange=exchange)
     channel.queue_declare(
-        queue=CASE_PROCESSING_QUEUE, durable=True,
-        arguments={"x-dead-letter-exchange": _DEAD_LETTER_EXCHANGE},
+        queue=queue, durable=True,
+        arguments={"x-dead-letter-exchange": exchange},
     )
 
 
@@ -44,7 +67,7 @@ def publish_case_event(
     }).encode()
     channel.basic_publish(
         exchange="",
-        routing_key=CASE_PROCESSING_QUEUE,
+        routing_key=case_processing_queue_name(),
         body=body,
         properties=pika.BasicProperties(delivery_mode=2, content_type="application/json"),
     )

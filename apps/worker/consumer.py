@@ -5,7 +5,7 @@ import uuid
 
 from apps.worker.consumers.case_processing import process_case_event
 from models.session import SessionLocal
-from services.ingestion.queue import CASE_PROCESSING_QUEUE, declare_topology, make_connection
+from services.ingestion.queue import case_processing_queue_name, declare_topology, make_connection
 from services.policy.redis_client import make_redis_client
 
 logging.basicConfig(level=logging.INFO)
@@ -37,12 +37,13 @@ def _on_message(channel, method, properties, body):
 
 
 def run_forever() -> None:
+    queue = case_processing_queue_name()
     connection = make_connection()
     channel = connection.channel()
     declare_topology(channel)
     channel.basic_qos(prefetch_count=1)
-    channel.basic_consume(queue=CASE_PROCESSING_QUEUE, on_message_callback=_on_message)
-    logger.info("worker started, consuming from %r", CASE_PROCESSING_QUEUE)
+    channel.basic_consume(queue=queue, on_message_callback=_on_message)
+    logger.info("worker started, consuming from %r", queue)
     try:
         channel.start_consuming()
     except KeyboardInterrupt:
