@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from apps.api.deps import get_db, get_redis
 from apps.api.main import app
 from models.benchmark_run import BenchmarkRun
+from services.accounts.repository import ensure_default_accounts
 from services.policy.config_repository import ensure_default_global_config
 from services.recovery.recovery_config_repository import ensure_default_recovery_config
 
@@ -16,6 +17,7 @@ DASHBOARD_CREDENTIALS = "test_viewer:test_viewer_pw:viewer"
 @pytest.fixture()
 def client(db_session, redis_client, monkeypatch):
     monkeypatch.setenv("DASHBOARD_CREDENTIALS", DASHBOARD_CREDENTIALS)
+    ensure_default_accounts(db_session)
     app.dependency_overrides[get_db] = lambda: db_session
     app.dependency_overrides[get_redis] = lambda: redis_client
     test_client = TestClient(app)

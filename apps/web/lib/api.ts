@@ -18,6 +18,17 @@ export function loadStoredCredentials(): Credentials | null {
   return currentCredentials;
 }
 
+export function setStoredRole(role: string | null) {
+  if (typeof window === "undefined") return;
+  if (role) sessionStorage.setItem("rayvex_dashboard_role", role);
+  else sessionStorage.removeItem("rayvex_dashboard_role");
+}
+
+export function getStoredRole(): string | null {
+  if (typeof window === "undefined") return null;
+  return sessionStorage.getItem("rayvex_dashboard_role");
+}
+
 function authHeader(): Record<string, string> {
   if (!currentCredentials) return {};
   const token = btoa(`${currentCredentials.username}:${currentCredentials.password}`);
@@ -246,7 +257,23 @@ export interface SimulatorPreviewResponse {
   draft: { naive_retry: SimulatorStrategyMetrics; intelligent_recovery: SimulatorStrategyMetrics; incremental_verified_revenue: string };
 }
 
+export interface AuthMeResponse {
+  username: string;
+  role: string;
+}
+
 export const api = {
+  register: (username: string, password: string) =>
+    fetchJson<{ username: string; role: string }>("/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+    }),
+  me: () => fetchJson<AuthMeResponse>("/auth/me"),
+  promote: (username: string) =>
+    fetchJson<{ username: string; role: string }>("/auth/promote", {
+      method: "POST",
+      body: JSON.stringify({ username }),
+    }),
   getMetricsSummary: () => fetchJson<MetricsSummary>("/metrics/summary"),
   getPolicyConfig: <T = Record<string, unknown>>() => fetchJson<T>("/policy/config"),
   updatePolicyConfig: <T = Record<string, unknown>>(body: Record<string, unknown>) =>

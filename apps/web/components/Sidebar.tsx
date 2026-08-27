@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { IconGauge, IconList, IconFlask, IconSettings, IconAlertTriangle, IconMoon, IconSun } from "@tabler/icons-react";
-import { setCredentials } from "@/lib/api";
+import { setCredentials, setStoredRole } from "@/lib/api";
 
 type Mode = "light" | "dark" | null;
 
@@ -84,6 +84,7 @@ export function Sidebar() {
         className="absolute bottom-6 left-4 text-[13px] text-[var(--text-secondary)]"
         onClick={() => {
           setCredentials(null);
+          setStoredRole(null);
           window.location.reload();
         }}
       >

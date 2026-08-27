@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 
 from apps.api.deps import get_db, get_redis
 from apps.api.main import app
+from services.accounts.repository import ensure_default_accounts
 from services.ingestion.webhook_processor import compute_signature
 from services.policy.config_repository import ensure_default_global_config
 from services.recovery.recovery_config_repository import ensure_default_recovery_config
@@ -24,6 +25,11 @@ def _basic_auth_header(username: str, password: str) -> str:
 def client(db_session, redis_client, monkeypatch):
     monkeypatch.setenv("RAZORPAY_WEBHOOK_SECRET", WEBHOOK_SECRET)
     monkeypatch.setenv("DASHBOARD_CREDENTIALS", DASHBOARD_CREDENTIALS)
+    # The app's own startup event bootstraps these from DASHBOARD_CREDENTIALS,
+    # but it runs (if at all) against a real SessionLocal(), not this test's
+    # isolated db_session — so it's done explicitly here instead, the same
+    # way every other ensure_default_* fixture in this suite works.
+    ensure_default_accounts(db_session)
     app.dependency_overrides[get_db] = lambda: db_session
     app.dependency_overrides[get_redis] = lambda: redis_client
     test_client = TestClient(app)
@@ -73,7 +79,7 @@ def test_webhook_endpoint_publishes_a_case_processing_message(client, rabbitmq_c
     case_processing queue."""
     import json as _json
 
-    from services.ingestion.queue import CASE_PROCESSING_QUEUE
+    from services.ingestion.queue import case_processing_queue_name
 
     payload = {
         "event": "payment.failed",
@@ -91,7 +97,7 @@ def test_webhook_endpoint_publishes_a_case_processing_message(client, rabbitmq_c
     assert response.status_code == 200
     case_id = response.json()["case_id"]
 
-    method, _, msg_body = rabbitmq_channel.basic_get(queue=CASE_PROCESSING_QUEUE, auto_ack=True)
+    method, _, msg_body = rabbitmq_channel.basic_get(queue=case_processing_queue_name(), auto_ack=True)
     assert method is not None, "no message was published for a processed webhook"
     message = _json.loads(msg_body)
     assert message["case_id"] == case_id

@@ -20,6 +20,7 @@ from models.raw_webhook_event import RawWebhookEvent
 from models.session import SessionLocal, get_database_url
 from services.evaluation.benchmark import run_benchmark
 from services.ingestion.webhook_processor import compute_signature, ingest_webhook
+from services.accounts.repository import ensure_default_accounts
 from services.policy.config_repository import ensure_default_global_config
 from services.policy.redis_client import make_redis_client
 from services.recovery.case_orchestrator import ScriptedDecision, run_case_pipeline
@@ -364,6 +365,7 @@ def main():
     try:
         ensure_default_global_config(session, created_by="system:seed_demo")
         ensure_default_recovery_config(session, created_by="system:seed_demo")
+        ensure_default_accounts(session)
         session.commit()
 
         scenarios = [

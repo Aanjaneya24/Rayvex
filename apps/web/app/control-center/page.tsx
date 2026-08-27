@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api, SimulatorPreviewResponse } from "@/lib/api";
+import { api, getStoredRole, SimulatorPreviewResponse } from "@/lib/api";
 
 interface PolicyConfig {
   version: number;
@@ -54,6 +54,62 @@ const FIELD_GROUPS: { title: string; fields: { key: keyof PolicyConfig; label: s
     ],
   },
 ];
+
+function PromoteUserPanel() {
+  const [visible, setVisible] = useState(false);
+  const [username, setUsername] = useState("");
+  const [result, setResult] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    setVisible(getStoredRole() === "reviewer");
+  }, []);
+
+  if (!visible) return null;
+
+  const promote = async () => {
+    setSubmitting(true);
+    setError(null);
+    setResult(null);
+    try {
+      const res = await api.promote(username);
+      setResult(`${res.username} is now a reviewer.`);
+      setUsername("");
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="rounded-card border border-[var(--border)] bg-[var(--surface-2)] p-4">
+      <h2 className="mb-1 text-[16px] font-medium">Promote a user to reviewer</h2>
+      <p className="mb-3 text-[13px] text-[var(--text-secondary)]">
+        New accounts start as viewer-only. Only an existing reviewer can grant another
+        user the ability to act on escalations.
+      </p>
+      <div className="flex items-center gap-2">
+        <input
+          className="rounded-control border border-[var(--border-strong)] bg-[var(--surface-1)] px-3 py-1.5 text-[14px]"
+          placeholder="Username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+        />
+        <button
+          onClick={promote}
+          disabled={!username || submitting}
+          className="rounded-control bg-[var(--accent)] px-3 py-1.5 text-[14px] text-[var(--on-accent)] disabled:opacity-50"
+        >
+          {submitting ? "Promoting…" : "Promote"}
+        </button>
+      </div>
+      {result && <p className="mt-2 text-[13px] text-[var(--success-text)]">{result}</p>}
+      {error && <p className="mt-2 text-[13px] text-[var(--danger-text)]">{error}</p>}
+    </div>
+  );
+}
 
 function SimulatorPreviewPanel({
   result,
@@ -190,6 +246,8 @@ export default function ControlCenterPage() {
       </div>
 
       {error && <div className="text-[14px] text-[var(--danger-text)]">Save failed: {error}</div>}
+
+      <PromoteUserPanel />
 
       <div className="flex flex-col gap-6">
         {FIELD_GROUPS.map((group) => (

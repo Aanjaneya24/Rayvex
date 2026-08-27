@@ -13,6 +13,7 @@ from models.agent_decision import AgentDecision
 from models.enums import CaseState, CaseType, EventType, ProcessingStatus, RecoveryAction
 from models.payment_event import PaymentEvent
 from models.raw_webhook_event import RawWebhookEvent
+from services.accounts.repository import ensure_default_accounts
 from services.agent.schema import SCHEMA_VERSION
 from services.payments.simulation_provider import SimulationProvider
 from services.payments.verification import run_verification
@@ -26,6 +27,7 @@ DASHBOARD_CREDENTIALS = "demo_viewer:viewer_pw:viewer,demo_reviewer:reviewer_pw:
 @pytest.fixture()
 def client(db_session, redis_client, monkeypatch):
     monkeypatch.setenv("DASHBOARD_CREDENTIALS", DASHBOARD_CREDENTIALS)
+    ensure_default_accounts(db_session)
     app.dependency_overrides[get_db] = lambda: db_session
     app.dependency_overrides[get_redis] = lambda: redis_client
     yield TestClient(app)
