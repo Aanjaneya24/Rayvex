@@ -75,21 +75,41 @@ migrates `rayvex` (`DATABASE_URL`), never `rayvex_test`:
 ```bash
 DATABASE_URL=postgresql+psycopg://rayvex:rayvex@localhost:55432/rayvex_test alembic upgrade head
 
-pytest          
+pytest          # 336 tests, all against real Postgres + Redis + RabbitMQ, no mocks
 ```
 
 Skipping this step fails every DB-touching test with `relation "cases"
 does not exist` — a real, easy-to-hit trap on a genuinely fresh
 `docker compose down -v` + `up`, not merely theoretical.
 
+For a fast sanity check instead of the full suite (~3 minutes):
+
+```bash
+pytest tests/unit -q   # 120 tests, DB-free, ~3 seconds
+```
+
+The full suite is safe to run even while `apps/worker/consumer.py` is
+running against the real dev broker — tests publish/consume on a
+`case_processing_test` queue (`tests/conftest.py`), completely separate
+from the `case_processing` queue a live worker process consumes, so the
+two can never race each other.
+
 ## What's built
 
 - **`models/` + `migrations/`** — the full schema (12 tables), Alembic-managed,
   no hand-edited state ever.
 - **`services/recovery/`** — the state machine, the policy gate, the
-  probability estimator + expected-value calculator, and
-  `case_orchestrator.py` wiring screening through decision, the agent,
-  the gate, and verification into one pipeline.
+  probability estimator + expected-value calculator, `action_executor.py`
+  (a formal `ActionExecutor` Protocol — the one implementation is
+  simulated, disclosed as such, but the swap point for a real one is
+  real code, not a comment), and `case_orchestrator.py` wiring screening
+  through decision, the agent, the gate, and verification into one
+  pipeline.
+- **`services/accounts/`** — real per-user accounts (bcrypt-hashed
+  passwords in Postgres, not a shared env-var credential list).
+  Self-registration always creates a viewer; the reviewer role — which
+  can approve/reject/override escalations — is granted only by an
+  existing reviewer, never at signup.
 - **`services/policy/`** — the pure policy engine, versioned merchant
   config, real Redis-backed cooldown/velocity/daily-attempt guards.
 - **`services/agent/`** — the LangChain tool-calling orchestrator, a
@@ -118,7 +138,11 @@ does not exist` — a real, easy-to-hit trap on a genuinely fresh
   Rayvex-vs-Naive-Retry comparison panel, every displayed number fetched
   from the API.
 - **`scripts/seed_demo.py`** — the one-command reproducible demo.
-- **`tests/`** — 309 tests: `unit/` (DB-free where the code allows it),
+- **`apps/api/routers/auth.py`** — `/auth/register`, `/auth/me`,
+  `/auth/promote`; the frontend login screen has a real "Create an
+  account" flow, and Control Center has a reviewer-only "promote a user"
+  panel.
+- **`tests/`** — 336 tests: `unit/` (DB-free where the code allows it),
   `integration/` (real Postgres + Redis + RabbitMQ, including a "try to
   break it" suite for payment verification and a structural scan proving
   only one module in the codebase can ever write `RECOVERED`), `agent/`
