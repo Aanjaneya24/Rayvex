@@ -70,8 +70,15 @@ def test_scenario_9_verification_error_stays_pending(db_session, redis_client):
     assert outcome.verification_result.outcome.value == "ERROR"
 
 
-def test_scenario_10_batch_evaluation_produces_a_real_comparison(db_session, redis_client):
+def test_scenario_10_amount_mismatch_reaches_escalated(db_session, redis_client):
     _setup(db_session)
-    run = seed_demo.scenario_10_batch_evaluation(db_session, redis_client, live=False, n=80)
+    reconciliation = seed_demo.scenario_10_captured_amount_mismatch_escalated(db_session, redis_client, live=False)
+    assert reconciliation.outcome.value == "ESCALATED"
+    assert reconciliation.transition.to_state is CaseState.ESCALATED
+
+
+def test_scenario_11_batch_evaluation_produces_a_real_comparison(db_session, redis_client):
+    _setup(db_session)
+    run = seed_demo.scenario_11_batch_evaluation(db_session, redis_client, live=False, n=80)
     assert run.case_count == 80
     assert run.naive_retry_metrics["revenue_at_risk"] > 0

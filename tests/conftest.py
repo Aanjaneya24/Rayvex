@@ -31,6 +31,23 @@ def _isolated_case_processing_queue():
     os.environ["CASE_PROCESSING_QUEUE_NAME"] = "case_processing_test"
 
 
+@pytest.fixture(autouse=True, scope="session")
+def _no_real_payment_provider_in_tests():
+    # Tests must never depend on whatever happens to be in the developer's
+    # .env: services/payments/provider_factory.py silently switches to
+    # RazorpayProvider whenever RAZORPAY_KEY_ID/SECRET are set, which is
+    # correct for the real app but wrong for the test suite — a test that
+    # calls run_case_pipeline() without explicitly passing
+    # provider=SimulationProvider(...) has no real Razorpay resource
+    # behind its fabricated payment/order IDs, so it would get a real
+    # ERROR outcome instead of the deterministic one it's asserting on.
+    # No test in this suite exercises RazorpayProvider itself (that would
+    # require a real network call, which no test here makes), so this is
+    # safe to unset unconditionally for the whole session.
+    os.environ.pop("RAZORPAY_KEY_ID", None)
+    os.environ.pop("RAZORPAY_KEY_SECRET", None)
+
+
 @pytest.fixture(scope="session")
 def test_engine():
     url = os.environ.get("TEST_DATABASE_URL")
