@@ -25,6 +25,64 @@ that would out-perform the segment-bucket estimator already in place,
 and there's no real channel credential configured anywhere in this
 environment to build a non-fake integration against.
 
+## Demo
+
+**[5-minute walkthrough video](https://drive.google.com/file/d/1ceEutOOI_V4uTreEdMaVPHYQlR0igHHl/view?usp=drive_link)**
+
+Screenshots below are from a live run against the seeded demo data
+(`scripts/seed_demo.py --benchmark-n 500`), not mockups — the numbers,
+case IDs, and statuses are whatever that seed run actually produced.
+
+### Command Center
+
+![Command Center](docs/screenshots/command-center.png)
+
+The landing page. Every number is queried live from Postgres on page
+load — revenue at risk, verified recovered revenue, today's recovery
+rate. The recovery funnel underneath shows how many of the current
+cases made it through each pipeline stage (diagnosed → eligible →
+action taken → verified recovered), and the comparison chart is the
+most recent Rayvex-vs-naive-retry benchmark run, not a static graphic.
+
+### Cases
+
+![Cases list](docs/screenshots/cases.png)
+
+Every seeded case, real filters (status, failure type, amount range,
+created-date range), and a real database search — no client-side
+filtering over a fixed list. Status badges are honest about outcome:
+`recovered`, `stopped`, `verification pending`, `escalated`, each
+reflecting the case's actual `current_state` in the database.
+
+### Escalations
+
+![Escalation queue](docs/screenshots/escalations.png)
+
+Cases land here only when the system genuinely can't resolve them on
+its own — in this run, a payment whose captured amount didn't match
+what was expected, which verification refuses to auto-confirm and
+escalates for a human instead of silently marking it recovered.
+
+![Escalation review panel](docs/screenshots/escalation-review.png)
+
+Clicking a queued case opens its full context — the agent's original
+proposal, confidence and risk level, failure code, amount — next to
+the reviewer's decision panel. A reason is required and audited for
+every Approve, Override, or Reject; a viewer-role account never sees
+these three buttons at all (nor can it call the endpoint directly —
+the API itself enforces this with a 403).
+
+### Control Center
+
+![Control Center](docs/screenshots/control-center.png)
+
+Every threshold the policy engine actually enforces — retry limits,
+amount thresholds, rate limits, communication hours, risk score — is
+editable here by a reviewer, with a live "Preview effect" simulation
+before saving so a policy change is never a blind guess. Saving is
+reviewer-only; a viewer sees exactly why the control is disabled
+instead of a button that silently does nothing.
+
 ## Quickest path to seeing it work
 
 ```bash
@@ -36,14 +94,18 @@ docker compose up -d postgres redis rabbitmq
 python scripts/seed_demo.py --benchmark-n 500
 ```
 
-That resets the database to a clean, migration-defined state and runs 10
+That resets the database to a clean, migration-defined state and runs 11
 demo scenarios (UPI timeout retry, insufficient-funds alternative payment,
 checkout abandonment recovery, a repeated-failure policy stop, a
-suspicious-velocity escalation, duplicate-webhook idempotency, a
-failed→captured reconciliation, a prompt-injection attempt safely
-ignored, a verification that correctly stays pending, and a batch
-Rayvex-vs-Naive-Retry benchmark run) — plus the benchmark itself,
-printing each case's real outcome as it happens. `seed_demo.py` drives
+suspicious-velocity policy stop flagged for escalation, duplicate-webhook
+idempotency, a failed→captured reconciliation, a prompt-injection attempt
+safely ignored, a verification that correctly stays pending, a captured
+amount that doesn't match the expected payment and escalates for human
+review, and a batch Rayvex-vs-Naive-Retry benchmark run) — plus the
+benchmark itself, printing each case's real outcome as it happens. The
+amount-mismatch scenario is what populates the Escalations queue in the
+dashboard; every other STOPPED/pending scenario is visible on the Cases
+list but doesn't queue for human review. `seed_demo.py` drives
 cases through the pipeline directly, the same call the worker below
 makes per queue message — it doesn't need the worker running.
 
@@ -184,3 +246,24 @@ after an independently confirmed payment status from the provider.
 - Tests run against real Postgres/Redis/RabbitMQ, never SQLite or mocks —
   the schema uses native enums, JSONB, and row locking that only a real
   Postgres exercises faithfully.
+
+## Running in production
+
+Three deployable units, each with a pinned-dependency image:
+
+```bash
+docker build -f Dockerfile.api -t rayvex-api .        # FastAPI, migrates + serves on :8000
+docker build -f Dockerfile.worker -t rayvex-worker .   # RabbitMQ consumer
+docker build -f apps/web/Dockerfile -t rayvex-web .    # Next.js, serves on :3000
+```
+
+Required environment for the API/worker images: `DATABASE_URL`,
+`REDIS_URL`, `RABBITMQ_URL`, `RAZORPAY_WEBHOOK_SECRET`, `CORS_ORIGINS`
+(comma-separated real frontend origin(s)), and Razorpay/LLM credentials
+if not running in simulation mode. Set `DASHBOARD_CREDENTIALS` once to
+create the first reviewer account, then unset it — accounts persist in
+the `users` table after that. For the web image, set
+`NEXT_PUBLIC_API_BASE_URL` to the API's real origin at build time.
+
+The API image runs `alembic upgrade head` before serving, so schema
+migrations apply automatically on deploy.
