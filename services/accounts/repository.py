@@ -48,13 +48,9 @@ def promote_to_reviewer(session: Session, *, username: str) -> User:
 
 
 def ensure_default_accounts(session: Session) -> None:
-    """Bootstraps the initial account(s) from DASHBOARD_CREDENTIALS
-    (`username:password:role,...`) if the users table is otherwise empty —
-    this is what breaks the chicken-and-egg problem where self-registered
-    accounts always start as viewers, and promotion to reviewer requires
-    an existing reviewer to grant it. Safe to call repeatedly: only
-    creates a user that doesn't already exist by username, never
-    overwrites one that does."""
+    """Bootstraps account(s) from DASHBOARD_CREDENTIALS
+    (`username:password:role,...`), skipping any username that already
+    exists. Safe to call on every startup."""
     raw = os.environ.get("DASHBOARD_CREDENTIALS", "").strip()
     if not raw:
         return

@@ -1,4 +1,5 @@
 
+import os
 import time
 from contextlib import asynccontextmanager
 
@@ -15,11 +16,7 @@ logger = configure_logging()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Breaks the chicken-and-egg problem: a self-registered account can
-    # only ever be a viewer, and granting reviewer requires an existing
-    # reviewer. This creates the DASHBOARD_CREDENTIALS accounts (if any
-    # are configured) the first time they're missing from the users
-    # table, and is a no-op on every later restart.
+    # Creates the DASHBOARD_CREDENTIALS accounts on first boot; no-op after that.
     session = SessionLocal()
     try:
         ensure_default_accounts(session)
@@ -31,9 +28,11 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Rayvex API", version="0.1.0", lifespan=lifespan)
 
+cors_origins = [o.strip() for o in os.environ.get("CORS_ORIGINS", "http://localhost:3000").split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
