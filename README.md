@@ -1,4 +1,4 @@
-# Rayvex — AI Revenue Recovery Infrastructure
+# Rayvex- AI Revenue Recovery Infrastructure
 
 Razorpay AI Buildathon 2026 — Track 3.
 
