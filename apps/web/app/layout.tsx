@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AuthGate } from "@/components/AuthGate";
 import { PageFade } from "@/components/PageFade";
 import { Sidebar } from "@/components/Sidebar";
+import { TopNav } from "@/components/TopNav";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -14,8 +15,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         <AuthGate>
+          <TopNav />
           <Sidebar />
-          <main className="ml-[240px] min-h-screen">
+          <main className="ml-[240px] min-h-screen pt-14">
             <div className="mx-auto max-w-[1280px] px-8 py-8">
               <PageFade>{children}</PageFade>
             </div>

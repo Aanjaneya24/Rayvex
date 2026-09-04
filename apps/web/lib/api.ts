@@ -281,6 +281,7 @@ export const api = {
   previewPolicyChange: (body: Record<string, unknown>) =>
     fetchJson<SimulatorPreviewResponse>("/simulator/preview", { method: "POST", body: JSON.stringify(body) }),
   listCases: (params?: {
+    q?: string;
     status?: string;
     failure_code?: string;
     amount_min?: string;
@@ -291,6 +292,7 @@ export const api = {
     offset?: number;
   }) => {
     const qs = new URLSearchParams();
+    if (params?.q) qs.set("q", params.q);
     if (params?.status) qs.set("status", params.status);
     if (params?.failure_code) qs.set("failure_code", params.failure_code);
     if (params?.amount_min) qs.set("amount_min", params.amount_min);

@@ -7,6 +7,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { TiltCard } from "@/components/TiltCard";
 import { ProviderModeBadge, StatusBadge } from "@/components/StatusBadge";
+import { failureTypeLabel, humanize } from "@/lib/labels";
+import { reportProviderMode } from "@/lib/providerMode";
 import { api, CaseDetail } from "@/lib/api";
 
 const LIVE_POLL_INTERVAL_MS = 5000;
@@ -43,6 +45,15 @@ export default function CaseDetailPage() {
     };
   }, [params.id]);
 
+  // The top bar's mode pill mirrors this same per-case verification data —
+  // reported here, cleared on unmount so it never shows a stale mode on a
+  // page that isn't a case detail page.
+  useEffect(() => {
+    const latest = detail?.verification_proof[detail.verification_proof.length - 1] ?? null;
+    reportProviderMode(latest?.mode ?? null);
+    return () => reportProviderMode(null);
+  }, [detail]);
+
   if (error) {
     return <div className="text-[14px] text-[var(--danger-text)]">Failed to load: {error}</div>;
   }
@@ -64,8 +75,9 @@ export default function CaseDetailPage() {
         {latestVerification && <ProviderModeBadge mode={latestVerification.mode} />}
       </div>
       <div className="text-[14px] text-[var(--text-secondary)]">
-        {detail.case.currency} {detail.case.amount} · {detail.case.failure_code ?? "no failure code"} ·{" "}
-        {detail.case.case_type}
+        {detail.case.currency} {detail.case.amount} ·{" "}
+        {detail.case.failure_code ? failureTypeLabel(detail.case.failure_code) : "no failure code"} ·{" "}
+        {humanize(detail.case.case_type)}
       </div>
 
       <div className="grid grid-cols-[280px_1fr_320px] gap-6">
@@ -77,7 +89,7 @@ export default function CaseDetailPage() {
           />
           <WhyPanel
             label="Risk level"
-            value={latestDecision?.risk_level ?? "—"}
+            value={humanize(latestDecision?.risk_level)}
             reason={
               latestDecision
                 ? `Assessed at decision time (${latestDecision.model_backend}).`
@@ -102,8 +114,8 @@ export default function CaseDetailPage() {
               <li key={i}>
                 <ScrollReveal delayMs={i * 40}>
                   <div className="text-[14px] font-medium">
-                    {step.from_state ? `${step.from_state} -> ` : ""}
-                    {step.to_state}
+                    {step.from_state ? `${humanize(step.from_state)} -> ` : ""}
+                    {humanize(step.to_state)}
                   </div>
                   <div className="text-[13px] text-[var(--text-secondary)]">{step.reason}</div>
                   <div className="text-[12px] text-[var(--text-muted)]">
@@ -139,7 +151,7 @@ export default function CaseDetailPage() {
               )}
               {detail.agent_trace.map((d, i) => (
                 <TiltCard key={i}>
-                  <div className="text-[14px] font-medium">{d.proposed_action}</div>
+                  <div className="text-[14px] font-medium">{humanize(d.proposed_action)}</div>
                   <div className="text-[13px] text-[var(--text-secondary)]">{d.reason}</div>
                   <div className="mt-1 text-[12px] text-[var(--text-muted)]">
                     {d.model_backend} ({d.model_name}) · prompt v{d.prompt_version} · schema v
@@ -168,8 +180,8 @@ export default function CaseDetailPage() {
               {detail.policy_checks.map((p, i) => (
                 <TiltCard key={i}>
                   <div className="text-[14px] font-medium">
-                    {p.verdict_type}
-                    {p.resulting_action ? ` -> ${p.resulting_action}` : ""}
+                    {humanize(p.verdict_type)}
+                    {p.resulting_action ? ` -> ${humanize(p.resulting_action)}` : ""}
                   </div>
                   <div className="text-[13px] text-[var(--text-secondary)]">{p.reason}</div>
                   <div className="mt-1 text-[12px] text-[var(--text-muted)]">
@@ -239,7 +251,7 @@ export default function CaseDetailPage() {
                     style={{ backgroundColor: a.chosen ? "var(--accent-muted)" : undefined }}
                   >
                     <td className="px-3 py-2 font-medium">
-                      {a.action}
+                      {humanize(a.action)}
                       {a.chosen && (
                         <span className="ml-2 text-[12px]" style={{ color: "var(--accent)" }}>
                           chosen
@@ -247,7 +259,7 @@ export default function CaseDetailPage() {
                       )}
                     </td>
                     <td className="tabular-nums px-3 py-2">{(a.probability * 100).toFixed(0)}%</td>
-                    <td className="px-3 py-2 text-[var(--text-muted)]">{a.source_tier}</td>
+                    <td className="px-3 py-2 text-[var(--text-muted)]">{humanize(a.source_tier)}</td>
                     <td className="tabular-nums px-3 py-2">
                       Rs {a.expected_recovery_value.toFixed(2)}
                     </td>
@@ -277,7 +289,7 @@ function describeVerificationOutcome(
       note: "The provider call itself couldn't be completed (timeout/network error), not a claim about the payment. The case stays exactly where it was; verification will be retried.",
     };
   }
-  return { label: outcome, note: `provider status: ${providerStatus ?? "n/a"}` };
+  return { label: humanize(outcome), note: `provider status: ${providerStatus ?? "n/a"}` };
 }
 
 function WhyPanel({ label, value, reason }: { label: string; value: string; reason: string }) {

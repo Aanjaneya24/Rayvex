@@ -2,94 +2,53 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import { IconGauge, IconList, IconFlask, IconSettings, IconAlertTriangle, IconMoon, IconSun } from "@tabler/icons-react";
+import { IconLogout } from "@tabler/icons-react";
 import { setCredentials, setStoredRole } from "@/lib/api";
-
-type Mode = "light" | "dark" | null;
-
-function applyMode(mode: Mode) {
-  if (mode === null) {
-    document.documentElement.removeAttribute("data-mode");
-  } else {
-    document.documentElement.setAttribute("data-mode", mode);
-  }
-}
-
-const NAV_ITEMS = [
-  { href: "/", label: "Command center", icon: IconGauge },
-  { href: "/cases", label: "Cases", icon: IconList },
-  { href: "/escalations", label: "Escalations", icon: IconAlertTriangle },
-  { href: "/evaluation", label: "Evaluation", icon: IconFlask },
-  { href: "/control-center", label: "Control center", icon: IconSettings },
-];
-
-const STORAGE_KEY = "rayvex_theme_mode";
+import { isNavItemActive, NAV_ITEMS } from "@/lib/nav";
 
 export function Sidebar() {
   const pathname = usePathname();
-  const [mode, setMode] = useState<Mode>(null);
-
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) as Mode;
-    if (stored === "light" || stored === "dark") {
-      setMode(stored);
-      applyMode(stored);
-    }
-  }, []);
-
-  const toggleMode = () => {
-    const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const currentlyDark = mode === "dark" || (mode === null && systemPrefersDark);
-    const next: Mode = currentlyDark ? "light" : "dark";
-    setMode(next);
-    applyMode(next);
-    localStorage.setItem(STORAGE_KEY, next);
-  };
 
   return (
     <aside
-      className="fixed left-0 top-0 h-screen w-[240px] border-r border-[var(--border)] bg-[var(--surface-1)] px-4 py-6"
+      className="fixed left-0 top-14 h-[calc(100vh-56px)] w-[240px] border-r border-[var(--border)] bg-[var(--surface-1)] px-3 py-5"
     >
-      <div className="mb-8 px-2 text-[18px] font-medium">Rayvex</div>
-      <nav className="flex flex-col gap-1">
+      <div className="mb-2 px-3 text-[11px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
+        Recovery
+      </div>
+      <nav className="flex flex-col gap-0.5">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-          const active = href === "/" ? pathname === "/" : pathname?.startsWith(href);
+          const active = isNavItemActive(href, pathname);
           return (
-
             <Link
               key={href}
               href={href}
-              className="flex items-center gap-2 rounded-full px-3 py-2 text-[14px]"
+              className="flex items-center gap-2.5 rounded-control px-3 py-2 text-[14px] transition-colors duration-150"
               style={{
-                backgroundColor: active ? "var(--accent-muted)" : "transparent",
-                color: active ? "var(--accent)" : "var(--text-secondary)",
+                backgroundColor: active ? "var(--sidebar-active-bg)" : "transparent",
+                color: active ? "var(--text-primary)" : "var(--text-secondary)",
+                fontWeight: active ? 600 : 400,
               }}
             >
-              <Icon size={18} stroke={1.75} />
+              <Icon size={18} stroke={active ? 2 : 1.75} />
               {label}
             </Link>
           );
         })}
       </nav>
-      <button
-        className="absolute bottom-14 left-4 flex items-center gap-2 text-[13px] text-[var(--text-secondary)]"
-        onClick={toggleMode}
-        aria-label="Toggle dark mode"
-      >
-        {mode === "dark" ? <IconSun size={16} stroke={1.75} /> : <IconMoon size={16} stroke={1.75} />}
-        {mode === "dark" ? "Light mode" : "Dark mode"}
-      </button>
-      <button
-        className="absolute bottom-6 left-4 text-[13px] text-[var(--text-secondary)]"
-        onClick={() => {
-          setCredentials(null);
-          setStoredRole(null);
-          window.location.reload();
-        }}
-      >
-        Sign out
-      </button>
+      <div className="absolute bottom-0 left-0 right-0 border-t border-[var(--border)] px-3 py-4">
+        <button
+          className="flex w-full items-center gap-2.5 rounded-control px-3 py-2 text-[13px] text-[var(--text-secondary)] hover:bg-[var(--sidebar-active-bg)]"
+          onClick={() => {
+            setCredentials(null);
+            setStoredRole(null);
+            window.location.reload();
+          }}
+        >
+          <IconLogout size={16} stroke={1.75} />
+          Sign out
+        </button>
+      </div>
     </aside>
   );
 }

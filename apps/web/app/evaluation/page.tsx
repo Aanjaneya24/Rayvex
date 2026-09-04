@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { MetricCard } from "@/components/MetricCard";
+import { ScrollReveal } from "@/components/ScrollReveal";
 import { StrategyComparisonChart } from "@/components/StrategyComparisonChart";
+import { useCountUp } from "@/hooks/useCountUp";
 import { api, BenchmarkRun } from "@/lib/api";
 
 const CASE_COUNT_OPTIONS = [100, 500, 1000, 5000, 10000];
@@ -119,16 +121,20 @@ export default function EvaluationPage() {
       )}
 
       {run && (
-        <div className="rounded-card border border-[var(--border)] bg-[var(--surface-2)] p-4">
-          <StrategyComparisonChart naive={run.naive_retry} intelligent={run.intelligent_recovery} />
-        </div>
+        <ScrollReveal>
+          <div className="rounded-card border border-[var(--border)] bg-[var(--surface-2)] p-4">
+            <StrategyComparisonChart naive={run.naive_retry} intelligent={run.intelligent_recovery} />
+          </div>
+        </ScrollReveal>
       )}
 
       {run && (
-        <div className="grid grid-cols-2 gap-6">
-          <StrategyPanel title="Naive retry" metrics={run.naive_retry} highlight={false} />
-          <StrategyPanel title="Rayvex (intelligent recovery)" metrics={run.intelligent_recovery} highlight />
-        </div>
+        <ScrollReveal delayMs={80}>
+          <div className="grid grid-cols-2 gap-6">
+            <StrategyPanel title="Naive retry" metrics={run.naive_retry} highlight={false} />
+            <StrategyPanel title="Rayvex (intelligent recovery)" metrics={run.intelligent_recovery} highlight />
+          </div>
+        </ScrollReveal>
       )}
 
       {run && (
@@ -146,6 +152,12 @@ export default function EvaluationPage() {
   );
 }
 
+function CountUpCell({ target, decimals = 0, format }: { target: number; decimals?: number; format: (n: number) => string }) {
+  const scale = 10 ** decimals;
+  const animated = useCountUp(Math.round(target * scale));
+  return <>{format(animated / scale)}</>;
+}
+
 function StrategyPanel({
   title,
   metrics,
@@ -155,19 +167,48 @@ function StrategyPanel({
   metrics: BenchmarkRun["naive_retry"];
   highlight: boolean;
 }) {
-  const rows: [string, string][] = [
-    ["Revenue at risk", `Rs ${metrics.revenue_at_risk.toLocaleString("en-IN")}`],
-    ["Verified recovered revenue", `Rs ${metrics.verified_recovered_revenue.toLocaleString("en-IN")}`],
-    ["Recovery rate", `${(metrics.recovery_rate * 100).toFixed(1)}%`],
-    ["Actions taken", metrics.total_actions_taken.toLocaleString("en-IN")],
-    ["Escalations", metrics.escalations.toLocaleString("en-IN")],
-    [
-      "Avg. time to recovery",
-      metrics.average_time_to_recovery_seconds !== null
-        ? `${Math.round(metrics.average_time_to_recovery_seconds)}s`
-        : "n/a",
-    ],
-    ["Recovery efficiency", `Rs ${metrics.recovery_efficiency.toFixed(2)} / action`],
+  const rows: { label: string; render: React.ReactNode }[] = [
+    {
+      label: "Revenue at risk",
+      render: <CountUpCell target={metrics.revenue_at_risk} format={(n) => `Rs ${n.toLocaleString("en-IN")}`} />,
+    },
+    {
+      label: "Verified recovered revenue",
+      render: (
+        <CountUpCell target={metrics.verified_recovered_revenue} format={(n) => `Rs ${n.toLocaleString("en-IN")}`} />
+      ),
+    },
+    {
+      label: "Recovery rate",
+      render: <CountUpCell target={metrics.recovery_rate * 100} decimals={1} format={(n) => `${n.toFixed(1)}%`} />,
+    },
+    {
+      label: "Actions taken",
+      render: <CountUpCell target={metrics.total_actions_taken} format={(n) => n.toLocaleString("en-IN")} />,
+    },
+    {
+      label: "Escalations",
+      render: <CountUpCell target={metrics.escalations} format={(n) => n.toLocaleString("en-IN")} />,
+    },
+    {
+      label: "Avg. time to recovery",
+      render:
+        metrics.average_time_to_recovery_seconds !== null ? (
+          <CountUpCell target={metrics.average_time_to_recovery_seconds} format={(n) => `${Math.round(n)}s`} />
+        ) : (
+          "n/a"
+        ),
+    },
+    {
+      label: "Recovery efficiency",
+      render: (
+        <CountUpCell
+          target={metrics.recovery_efficiency}
+          decimals={2}
+          format={(n) => `Rs ${n.toFixed(2)} / action`}
+        />
+      ),
+    },
   ];
   return (
     <div
@@ -177,10 +218,10 @@ function StrategyPanel({
       <h3 className="mb-3 text-[16px] font-medium">{title}</h3>
       <table className="w-full text-[14px]">
         <tbody>
-          {rows.map(([label, value]) => (
+          {rows.map(({ label, render }) => (
             <tr key={label} className="border-b border-[var(--border)] last:border-0">
               <td className="py-2 text-[var(--text-secondary)]">{label}</td>
-              <td className="tabular-nums py-2 text-right font-medium">{value}</td>
+              <td className="tabular-nums py-2 text-right font-medium">{render}</td>
             </tr>
           ))}
         </tbody>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { failureTypeLabel } from "@/lib/labels";
 import { api, getStoredRole, SimulatorPreviewResponse } from "@/lib/api";
 
 interface PolicyConfig {
@@ -21,7 +22,15 @@ interface PolicyConfig {
   risk_score_threshold: number;
 }
 
-const FIELD_GROUPS: { title: string; fields: { key: keyof PolicyConfig; label: string; type: "number" }[] }[] = [
+interface FieldDef {
+  key: keyof PolicyConfig;
+  label: string;
+  type: "number";
+  // Fields sharing the same pairGroup render together under one shared sub-heading.
+  pairGroup?: string;
+}
+
+const FIELD_GROUPS: { title: string; fields: FieldDef[] }[] = [
   {
     title: "Retry limits",
     fields: [
@@ -48,12 +57,97 @@ const FIELD_GROUPS: { title: string; fields: { key: keyof PolicyConfig; label: s
   {
     title: "Communication & risk",
     fields: [
-      { key: "allowed_communication_hours_start", label: "Allowed communication hours — start", type: "number" },
-      { key: "allowed_communication_hours_end", label: "Allowed communication hours — end", type: "number" },
+      {
+        key: "allowed_communication_hours_start", label: "Start", type: "number",
+        pairGroup: "Allowed communication hours",
+      },
+      {
+        key: "allowed_communication_hours_end", label: "End", type: "number",
+        pairGroup: "Allowed communication hours",
+      },
       { key: "risk_score_threshold", label: "Risk score threshold (0-1)", type: "number" },
     ],
   },
 ];
+
+// Groups consecutive fields sharing a pairGroup into a single "paired" unit.
+type RenderUnit = { kind: "single"; field: FieldDef } | { kind: "paired"; label: string; fields: FieldDef[] };
+
+function toRenderUnits(fields: FieldDef[]): RenderUnit[] {
+  const units: RenderUnit[] = [];
+  for (const field of fields) {
+    const last = units[units.length - 1];
+    if (field.pairGroup && last?.kind === "paired" && last.label === field.pairGroup) {
+      last.fields.push(field);
+    } else if (field.pairGroup) {
+      units.push({ kind: "paired", label: field.pairGroup, fields: [field] });
+    } else {
+      units.push({ kind: "single", field });
+    }
+  }
+  return units;
+}
+
+function FieldRow({
+  field, draft, config, isReviewer, saving, previewing, savedField, onDraftChange, onSave, onPreview, compact,
+}: {
+  field: FieldDef;
+  draft: PolicyConfig;
+  config: PolicyConfig | null;
+  isReviewer: boolean;
+  saving: boolean;
+  previewing: string | null;
+  savedField: string | null;
+  onDraftChange: (draft: PolicyConfig) => void;
+  onSave: (key: keyof PolicyConfig) => void;
+  onPreview: (key: keyof PolicyConfig) => void;
+  compact?: boolean;
+}) {
+  const { key, label } = field;
+  const matchesSaved = draft[key] === config?.[key];
+
+  return (
+    <div className={compact ? "flex flex-col gap-2" : "flex items-center gap-3"}>
+      <label className={compact ? "text-[13px] text-[var(--text-secondary)]" : "w-80 text-[13px] text-[var(--text-secondary)]"}>
+        {label}
+      </label>
+      <div className={compact ? "flex items-center gap-2" : "contents"}>
+        <input
+          type="number"
+          value={String(draft[key])}
+          onChange={(e) =>
+            onDraftChange({ ...draft, [key]: e.target.type === "number" ? Number(e.target.value) : e.target.value })
+          }
+          className={
+            "tabular-nums rounded-control border border-[var(--border-strong)] bg-[var(--surface-2)] px-2 py-1 text-[14px] " +
+            (compact ? "w-24" : "w-40")
+          }
+        />
+        <button
+          onClick={() => onSave(key)}
+          disabled={!isReviewer || saving || matchesSaved}
+          title={!isReviewer ? "Only a reviewer can save policy changes" : undefined}
+          className="rounded-control border border-[var(--border-strong)] px-3 py-1 text-[13px] text-[var(--text-secondary)] disabled:opacity-40"
+        >
+          Save
+        </button>
+        <button
+          onClick={() => onPreview(key)}
+          disabled={previewing !== null || matchesSaved}
+          className="rounded-control border border-[var(--border-strong)] px-3 py-1 text-[13px] text-[var(--text-secondary)] disabled:opacity-40"
+          title="Preview this change's effect on a 100-case simulation before saving"
+        >
+          {previewing === key ? "Simulating…" : "Preview effect"}
+        </button>
+      </div>
+      {savedField === key && (
+        <span className="animate-message-in text-[13px]" style={{ color: "var(--success-text)" }}>
+          Saved — now version {config?.version}
+        </span>
+      )}
+    </div>
+  );
+}
 
 function PromoteUserPanel() {
   const [visible, setVisible] = useState(false);
@@ -105,8 +199,8 @@ function PromoteUserPanel() {
           {submitting ? "Promoting…" : "Promote"}
         </button>
       </div>
-      {result && <p className="mt-2 text-[13px] text-[var(--success-text)]">{result}</p>}
-      {error && <p className="mt-2 text-[13px] text-[var(--danger-text)]">{error}</p>}
+      {result && <p className="animate-message-in mt-2 text-[13px] text-[var(--success-text)]">{result}</p>}
+      {error && <p className="animate-message-in mt-2 text-[13px] text-[var(--danger-text)]">{error}</p>}
     </div>
   );
 }
@@ -129,7 +223,7 @@ function SimulatorPreviewPanel({
   const delta = draft.verified_recovered_revenue - baseline.verified_recovered_revenue;
 
   return (
-    <div className="rounded-card border border-[var(--border)] bg-[var(--surface-2)] p-4">
+    <div className="animate-card-in rounded-card border border-[var(--border)] bg-[var(--surface-2)] p-4">
       <h2 className="mb-1 text-[16px] font-medium">Simulated effect (not saved)</h2>
       <p className="mb-3 text-[13px] text-[var(--text-secondary)]">
         {result.case_count}-case simulation, seed {result.seed} · changed: {result.changed_fields.join(", ")}
@@ -180,6 +274,7 @@ export default function ControlCenterPage() {
   const [previewing, setPreviewing] = useState<string | null>(null);
   const [previewResult, setPreviewResult] = useState<SimulatorPreviewResponse | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const isReviewer = getStoredRole() === "reviewer";
 
   useEffect(() => {
     api
@@ -243,6 +338,12 @@ export default function ControlCenterPage() {
         <p className="mt-2 text-[13px] text-[var(--warning-text)]">
           Changes apply to new decisions only — past cases are not retroactively altered.
         </p>
+        {!isReviewer && (
+          <p className="mt-2 text-[13px] text-[var(--text-secondary)]">
+            You're signed in as viewer — you can preview a change's effect, but saving it
+            requires a reviewer.
+          </p>
+        )}
       </div>
 
       {error && <div className="text-[14px] text-[var(--danger-text)]">Save failed: {error}</div>}
@@ -253,40 +354,46 @@ export default function ControlCenterPage() {
         {FIELD_GROUPS.map((group) => (
           <div key={group.title} className="rounded-card border border-[var(--border)] bg-[var(--surface-2)] p-4">
             <h2 className="mb-3 text-[16px] font-medium">{group.title}</h2>
-            <div className="flex flex-col gap-3">
-              {group.fields.map(({ key, label }) => (
-                <div key={key} className="flex items-center gap-3">
-                  <label className="w-80 text-[13px] text-[var(--text-secondary)]">{label}</label>
-                  <input
-                    type="number"
-                    value={String(draft[key])}
-                    onChange={(e) =>
-                      setDraft({ ...draft, [key]: e.target.type === "number" ? Number(e.target.value) : e.target.value })
-                    }
-                    className="tabular-nums w-40 rounded-control border border-[var(--border-strong)] bg-[var(--surface-2)] px-2 py-1 text-[14px]"
+            <div className="flex flex-col gap-4">
+              {toRenderUnits(group.fields).map((unit) =>
+                unit.kind === "single" ? (
+                  <FieldRow
+                    key={unit.field.key}
+                    field={unit.field}
+                    draft={draft}
+                    config={config}
+                    isReviewer={isReviewer}
+                    saving={saving}
+                    previewing={previewing}
+                    savedField={savedField}
+                    onDraftChange={setDraft}
+                    onSave={handleSave}
+                    onPreview={handlePreview}
                   />
-                  <button
-                    onClick={() => handleSave(key)}
-                    disabled={saving || draft[key] === config?.[key]}
-                    className="rounded-control border border-[var(--border-strong)] px-3 py-1 text-[13px] text-[var(--text-secondary)] disabled:opacity-40"
-                  >
-                    Save
-                  </button>
-                  <button
-                    onClick={() => handlePreview(key)}
-                    disabled={previewing !== null || draft[key] === config?.[key]}
-                    className="rounded-control border border-[var(--border-strong)] px-3 py-1 text-[13px] text-[var(--text-secondary)] disabled:opacity-40"
-                    title="Preview this change's effect on a 100-case simulation before saving"
-                  >
-                    {previewing === key ? "Simulating…" : "Preview effect"}
-                  </button>
-                  {savedField === key && (
-                    <span className="text-[13px]" style={{ color: "var(--success-text)" }}>
-                      Saved — now version {config?.version}
-                    </span>
-                  )}
-                </div>
-              ))}
+                ) : (
+                  <div key={unit.label}>
+                    <div className="mb-2 text-[13px] font-medium text-[var(--text-primary)]">{unit.label}</div>
+                    <div className="grid grid-cols-2 gap-4">
+                      {unit.fields.map((field) => (
+                        <FieldRow
+                          key={field.key}
+                          field={field}
+                          draft={draft}
+                          config={config}
+                          isReviewer={isReviewer}
+                          saving={saving}
+                          previewing={previewing}
+                          savedField={savedField}
+                          onDraftChange={setDraft}
+                          onSave={handleSave}
+                          onPreview={handlePreview}
+                          compact
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )
+              )}
             </div>
           </div>
         ))}
@@ -296,7 +403,7 @@ export default function ControlCenterPage() {
         <div className="rounded-card border border-[var(--border)] bg-[var(--surface-2)] p-4">
           <h2 className="mb-2 text-[16px] font-medium">Prohibited retry failure codes</h2>
           <p className="text-[13px] text-[var(--text-secondary)]">
-            {draft.prohibited_retry_failure_codes.join(", ") || "none configured"}
+            {draft.prohibited_retry_failure_codes.map(failureTypeLabel).join(", ") || "none configured"}
           </p>
           <p className="mt-1 text-[12px] text-[var(--text-muted)]">
             Read-only in this view — editing the list itself is not yet wired to the form.

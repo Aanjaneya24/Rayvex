@@ -5,7 +5,8 @@ import Link from "next/link";
 import { IconInbox } from "@tabler/icons-react";
 import { EmptyState } from "@/components/EmptyState";
 import { StatusBadge } from "@/components/StatusBadge";
-import { api, EscalationDetail, EscalationSummary } from "@/lib/api";
+import { failureTypeLabel, humanize } from "@/lib/labels";
+import { api, EscalationDetail, EscalationSummary, getStoredRole } from "@/lib/api";
 
 function ReviewPanel({ caseId, onReviewed }: { caseId: string; onReviewed: () => void }) {
   const [detail, setDetail] = useState<EscalationDetail | null>(null);
@@ -14,6 +15,7 @@ function ReviewPanel({ caseId, onReviewed }: { caseId: string; onReviewed: () =>
   const [action, setAction] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const isReviewer = getStoredRole() === "reviewer";
 
   useEffect(() => {
     setDetail(null);
@@ -65,7 +67,7 @@ function ReviewPanel({ caseId, onReviewed }: { caseId: string; onReviewed: () =>
         </div>
         <div>
           <div className="text-[12px] text-[var(--text-secondary)]">Failure code</div>
-          <div>{detail.failure_code ?? "—"}</div>
+          <div>{failureTypeLabel(detail.failure_code)}</div>
         </div>
         <div>
           <div className="text-[12px] text-[var(--text-secondary)]">Payment method</div>
@@ -80,7 +82,8 @@ function ReviewPanel({ caseId, onReviewed }: { caseId: string; onReviewed: () =>
           {detail.agent_trace.map((a, i) => (
             <div key={i} className="rounded-control border border-[var(--border)] px-3 py-2">
               <div className="font-medium">
-                {a.proposed_action} — confidence {(a.confidence * 100).toFixed(0)}%, risk {a.risk_level}
+                {humanize(a.proposed_action)} — confidence {(a.confidence * 100).toFixed(0)}%, risk{" "}
+                {humanize(a.risk_level)}
               </div>
               <div className="text-[var(--text-secondary)]">{a.reason}</div>
               <div className="text-[12px] text-[var(--text-muted)]">
@@ -98,8 +101,8 @@ function ReviewPanel({ caseId, onReviewed }: { caseId: string; onReviewed: () =>
             {detail.prior_reviews.map((r, i) => (
               <div key={i} className="rounded-control border border-[var(--border)] px-3 py-2">
                 <div className="font-medium">
-                  {r.decision} by {r.reviewer}
-                  {r.final_action ? ` — action: ${r.final_action}` : ""}
+                  {humanize(r.decision)} by {r.reviewer}
+                  {r.final_action ? ` — action: ${humanize(r.final_action)}` : ""}
                 </div>
                 <div className="text-[var(--text-secondary)]">{r.reason}</div>
               </div>
@@ -108,59 +111,68 @@ function ReviewPanel({ caseId, onReviewed }: { caseId: string; onReviewed: () =>
         </div>
       )}
 
-      <div className="flex flex-col gap-2">
-        <label className="text-[12px] text-[var(--text-secondary)]">Reason (required, audited)</label>
-        <textarea
-          className="rounded-control border border-[var(--border-strong)] bg-[var(--surface-1)] px-3 py-2 text-[14px]"
-          rows={2}
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-        />
-        <label className="text-[12px] text-[var(--text-secondary)]">
-          Action (required for OVERRIDE; must match the proposal, or be left blank, for APPROVE)
-        </label>
-        <select
-          className="rounded-control border border-[var(--border-strong)] bg-[var(--surface-1)] px-3 py-2 text-[14px]"
-          value={action}
-          onChange={(e) => setAction(e.target.value)}
-        >
-          <option value="">(use originally proposed action)</option>
-          {["RETRY", "SEND_RECOVERY_REMINDER", "SEND_RECOVERY_LINK", "SUGGEST_ALTERNATIVE_PAYMENT_METHOD"].map(
-            (a) => (
-              <option key={a} value={a}>
-                {a}
-              </option>
-            )
-          )}
-        </select>
-      </div>
+      {isReviewer ? (
+        <>
+          <div className="flex flex-col gap-2">
+            <label className="text-[12px] text-[var(--text-secondary)]">Reason (required, audited)</label>
+            <textarea
+              className="rounded-control border border-[var(--border-strong)] bg-[var(--surface-1)] px-3 py-2 text-[14px]"
+              rows={2}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
+            <label className="text-[12px] text-[var(--text-secondary)]">
+              Action (required for OVERRIDE; must match the proposal, or be left blank, for APPROVE)
+            </label>
+            <select
+              className="rounded-control border border-[var(--border-strong)] bg-[var(--surface-1)] px-3 py-2 text-[14px]"
+              value={action}
+              onChange={(e) => setAction(e.target.value)}
+            >
+              <option value="">(use originally proposed action)</option>
+              {["RETRY", "SEND_RECOVERY_REMINDER", "SEND_RECOVERY_LINK", "SUGGEST_ALTERNATIVE_PAYMENT_METHOD"].map(
+                (a) => (
+                  <option key={a} value={a}>
+                    {humanize(a)}
+                  </option>
+                )
+              )}
+            </select>
+          </div>
 
-      {error && <div className="text-[13px] text-[var(--danger-text)]">{error}</div>}
-      {result && <div className="text-[13px] text-[var(--success-text)]">{result}</div>}
+          {error && <div className="animate-message-in text-[13px] text-[var(--danger-text)]">{error}</div>}
+          {result && <div className="animate-message-in text-[13px] text-[var(--success-text)]">{result}</div>}
 
-      <div className="flex gap-2">
-        <button
-          disabled={submitting}
-          onClick={() => decide("APPROVE")}
-          className="rounded-control border border-[var(--border-strong)] px-3 py-2 text-[14px] text-[var(--text-primary)] disabled:opacity-50"
-        >
-          Approve
-        </button>
-        <button
-          disabled={submitting}
-          onClick={() => decide("OVERRIDE")}
-          className="rounded-control bg-[var(--accent)] px-3 py-2 text-[14px] text-[var(--on-accent)] disabled:opacity-50"
-        >
-          Override
-        </button>
-        <button
-          disabled={submitting}
-          onClick={() => decide("REJECT")}
-          className="rounded-control bg-[var(--danger)] px-3 py-2 text-[14px] text-white disabled:opacity-50"
-        >
-          Reject
-        </button>
-      </div>
+          <div className="flex gap-2">
+            <button
+              disabled={submitting}
+              onClick={() => decide("APPROVE")}
+              className="rounded-control border border-[var(--border-strong)] px-3 py-2 text-[14px] text-[var(--text-primary)] disabled:opacity-50"
+            >
+              Approve
+            </button>
+            <button
+              disabled={submitting}
+              onClick={() => decide("OVERRIDE")}
+              className="rounded-control bg-[var(--accent)] px-3 py-2 text-[14px] text-[var(--on-accent)] disabled:opacity-50"
+            >
+              Override
+            </button>
+            <button
+              disabled={submitting}
+              onClick={() => decide("REJECT")}
+              className="rounded-control bg-[var(--danger)] px-3 py-2 text-[14px] text-white disabled:opacity-50"
+            >
+              Reject
+            </button>
+          </div>
+        </>
+      ) : (
+        <p className="text-[13px] text-[var(--text-secondary)]">
+          You're signed in as viewer — reviewing an escalation (approve, reject, or override)
+          requires the reviewer role.
+        </p>
+      )}
     </div>
   );
 }

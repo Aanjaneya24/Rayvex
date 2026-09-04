@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { IconFilterOff } from "@tabler/icons-react";
 import { EmptyState } from "@/components/EmptyState";
 import { StatusBadge } from "@/components/StatusBadge";
+import { failureTypeLabel } from "@/lib/labels";
 import { api, CaseSummary } from "@/lib/api";
 
 const STATUS_OPTIONS = [
@@ -13,8 +15,10 @@ const STATUS_OPTIONS = [
 ];
 
 export default function CaseListPage() {
+  const searchParams = useSearchParams();
   const [cases, setCases] = useState<CaseSummary[] | null>(null);
   const [total, setTotal] = useState(0);
+  const [search, setSearch] = useState(searchParams.get("q") ?? "");
   const [status, setStatus] = useState("");
   const [failureCode, setFailureCode] = useState("");
   const [failureCodeOptions, setFailureCodeOptions] = useState<string[]>([]);
@@ -31,25 +35,30 @@ export default function CaseListPage() {
 
   useEffect(() => {
     setCases(null);
-    api
-      .listCases({
-        status: status || undefined,
-        failure_code: failureCode || undefined,
-        amount_min: amountMin || undefined,
-        amount_max: amountMax || undefined,
-        created_from: createdFrom ? new Date(createdFrom).toISOString() : undefined,
-        created_to: createdTo ? new Date(createdTo).toISOString() : undefined,
-        limit: 100,
-      })
-      .then((r) => {
-        setCases(r.cases);
-        setTotal(r.total);
-      })
-      .catch((e) => setError(String(e)));
-  }, [status, failureCode, amountMin, amountMax, createdFrom, createdTo]);
+    const timer = setTimeout(() => {
+      api
+        .listCases({
+          q: search || undefined,
+          status: status || undefined,
+          failure_code: failureCode || undefined,
+          amount_min: amountMin || undefined,
+          amount_max: amountMax || undefined,
+          created_from: createdFrom ? new Date(createdFrom).toISOString() : undefined,
+          created_to: createdTo ? new Date(createdTo).toISOString() : undefined,
+          limit: 100,
+        })
+        .then((r) => {
+          setCases(r.cases);
+          setTotal(r.total);
+        })
+        .catch((e) => setError(String(e)));
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [search, status, failureCode, amountMin, amountMax, createdFrom, createdTo]);
 
-  const hasActiveFilters = Boolean(status || failureCode || amountMin || amountMax || createdFrom || createdTo);
+  const hasActiveFilters = Boolean(search || status || failureCode || amountMin || amountMax || createdFrom || createdTo);
   const clearFilters = () => {
+    setSearch("");
     setStatus("");
     setFailureCode("");
     setAmountMin("");
@@ -66,6 +75,17 @@ export default function CaseListPage() {
       </div>
 
       <div className="flex flex-wrap items-end gap-4">
+        <div className="flex flex-col gap-1">
+          <label className="text-[13px] text-[var(--text-secondary)]">Search</label>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Case, payment, order, or customer ID"
+            className="w-64 rounded-control border border-[var(--border-strong)] bg-[var(--surface-2)] px-2 py-1 text-[14px]"
+          />
+        </div>
+
         <div className="flex flex-col gap-1">
           <label className="text-[13px] text-[var(--text-secondary)]">Status</label>
           <select
@@ -91,7 +111,7 @@ export default function CaseListPage() {
             <option value="">All</option>
             {failureCodeOptions.map((f) => (
               <option key={f} value={f}>
-                {f}
+                {failureTypeLabel(f)}
               </option>
             ))}
           </select>
@@ -175,7 +195,7 @@ export default function CaseListPage() {
                   <EmptyState
                     icon={IconFilterOff}
                     heading="No cases match this filter"
-                    subtext={hasActiveFilters ? "Try widening the status, failure type, amount, or date range." : undefined}
+                    subtext={hasActiveFilters ? "Try widening the search term, status, failure type, amount, or date range." : undefined}
                     action={hasActiveFilters ? { label: "Clear filters", onClick: clearFilters } : undefined}
                   />
                 </td>
@@ -191,7 +211,7 @@ export default function CaseListPage() {
                 <td className="tabular-nums px-4 py-3">
                   {c.currency} {c.amount}
                 </td>
-                <td className="px-4 py-3">{c.failure_code ?? "—"}</td>
+                <td className="px-4 py-3">{failureTypeLabel(c.failure_code)}</td>
                 <td className="px-4 py-3">
                   <StatusBadge status={c.status} />
                 </td>

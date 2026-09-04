@@ -7,6 +7,7 @@ import { MetricCard } from "@/components/MetricCard";
 import { RecoveryFunnelChart } from "@/components/RecoveryFunnelChart";
 import { StatusBadge } from "@/components/StatusBadge";
 import { StrategyComparisonChart } from "@/components/StrategyComparisonChart";
+import { failureTypeLabel } from "@/lib/labels";
 import { api, BenchmarkRun, CaseSummary, MetricsSummary, ObservabilitySummary } from "@/lib/api";
 
 export default function CommandCenterPage() {
@@ -38,9 +39,6 @@ export default function CommandCenterPage() {
     <div className="flex flex-col gap-8">
       <div>
         <h1 className="text-[22px] font-medium">Command center</h1>
-        <p className="mt-1 text-[13px] text-[var(--text-secondary)]">
-          Every number below is computed live from the database — nothing here is illustrative.
-        </p>
       </div>
 
       <div className="grid grid-cols-4 gap-4">
@@ -129,7 +127,7 @@ export default function CommandCenterPage() {
                   <td className="tabular-nums px-4 py-3">
                     {c.currency} {c.amount}
                   </td>
-                  <td className="px-4 py-3">{c.failure_code ?? "—"}</td>
+                  <td className="px-4 py-3">{failureTypeLabel(c.failure_code)}</td>
                   <td className="px-4 py-3">
                     <StatusBadge status={c.status} />
                   </td>
