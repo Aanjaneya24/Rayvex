@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from apps.api.auth import get_current_user
+from apps.api.auth import get_current_user, require_reviewer
 from apps.api.deps import get_db
 from services.policy.config_repository import activate_new_version, get_active_config
 
@@ -55,7 +55,9 @@ def get_policy_config(merchant_id: str | None = None, db: Session = Depends(get_
 
 
 @router.put("/config")
-def update_policy_config(body: PolicyConfigUpdate, db: Session = Depends(get_db)):
+def update_policy_config(
+    body: PolicyConfigUpdate, db: Session = Depends(get_db), _reviewer=Depends(require_reviewer),
+):
     fields = body.model_dump(exclude={"merchant_id", "updated_by"})
     activate_new_version(
         db, merchant_id=body.merchant_id, created_by=body.updated_by, **fields,

@@ -170,6 +170,33 @@ def test_case_list_amount_and_date_range_filters(client, db_session):
     assert any(c["case_id"] == case_id for c in past_to_now.json()["cases"])
 
 
+def test_case_list_search_matches_payment_id_order_id_and_case_id(client, db_session):
+    payload = {
+        "event": "payment.failed", "razorpay_event_id": f"evt_{uuid.uuid4()}",
+        "payload": {"payment": {"entity": {
+            "id": "pay_search_needle_1", "order_id": "order_search_needle_1", "amount": 400000,
+            "currency": "INR", "method": "upi", "error_code": "bank_timeout", "error_description": "timeout",
+            "notes": {"rayvex_merchant_id": "merchant_1", "rayvex_customer_id": "cust_search_needle"},
+        }}},
+    }
+    body = json.dumps(payload).encode()
+    sig = compute_signature(body, WEBHOOK_SECRET)
+    ingest_response = client.post("/webhooks/razorpay", content=body, headers={"X-Razorpay-Signature": sig})
+    case_id = ingest_response.json()["case_id"]
+
+    by_payment_id = client.get("/cases", params={"q": "search_needle_1"})
+    assert any(c["case_id"] == case_id for c in by_payment_id.json()["cases"])
+
+    by_case_id_prefix = client.get("/cases", params={"q": case_id[:8]})
+    assert any(c["case_id"] == case_id for c in by_case_id_prefix.json()["cases"])
+
+    by_customer_id = client.get("/cases", params={"q": "cust_search_needle"})
+    assert any(c["case_id"] == case_id for c in by_customer_id.json()["cases"])
+
+    no_match = client.get("/cases", params={"q": "this_string_matches_nothing_at_all"})
+    assert not any(c["case_id"] == case_id for c in no_match.json()["cases"])
+
+
 def test_failure_codes_endpoint_returns_only_real_distinct_values(client, db_session):
     payload = {
         "event": "payment.failed", "razorpay_event_id": f"evt_{uuid.uuid4()}",
@@ -239,7 +266,14 @@ def test_policy_config_get_and_update_round_trip(client, db_session):
     assert current["max_retry_count"] == 3
 
     update_body = {**{k: v for k, v in current.items() if k != "version"}, "max_retry_count": 5}
-    put_response = client.put("/policy/config", json=update_body)
+
+    # a viewer (the client fixture's default identity) can read policy but
+    # must never be able to write it — only a reviewer can
+    viewer_put = client.put("/policy/config", json=update_body)
+    assert viewer_put.status_code == 403
+
+    reviewer_headers = {"Authorization": _basic_auth_header("test_reviewer", "test_reviewer_pw")}
+    put_response = client.put("/policy/config", json=update_body, headers=reviewer_headers)
     assert put_response.status_code == 200
     updated = put_response.json()
     assert updated["max_retry_count"] == 5

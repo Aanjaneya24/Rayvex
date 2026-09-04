@@ -4,6 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import cast, or_, String
 from sqlalchemy.orm import Session
 
 from apps.api.auth import get_current_user
@@ -54,6 +55,7 @@ def list_failure_codes(db: Session = Depends(get_db)):
 @router.get("")
 def list_cases(
     db: Session = Depends(get_db),
+    q: str | None = Query(default=None, description="Free-text search across case ID, payment ID, order ID, customer ID, and merchant ID"),
     status: str | None = Query(default=None),
     failure_code: str | None = Query(default=None),
     amount_min: Decimal | None = Query(default=None),
@@ -64,6 +66,17 @@ def list_cases(
     offset: int = Query(default=0, ge=0),
 ):
     query = db.query(Case)
+    if q:
+        pattern = f"%{q.strip()}%"
+        query = query.filter(
+            or_(
+                cast(Case.id, String).ilike(pattern),
+                Case.payment_id.ilike(pattern),
+                Case.order_id.ilike(pattern),
+                Case.customer_id.ilike(pattern),
+                Case.merchant_id.ilike(pattern),
+            )
+        )
     if status:
         query = query.filter(Case.current_state == status)
     if failure_code:
