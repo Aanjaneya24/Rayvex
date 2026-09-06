@@ -1,4 +1,4 @@
-# Built Notes
+# Build Notes
 
 This is a real record of the bugs and dumb mistakes I actually hit while
 building Rayvex, not a cleaned-up highlight reel. Each entry is roughly
