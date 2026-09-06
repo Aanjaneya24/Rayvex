@@ -28,7 +28,7 @@ from services.recovery.recovery_config_repository import ensure_default_recovery
 from services.recovery.state_machine import RecoveryStateMachine
 from services.payments.provider import ProviderMode
 # Every payment/order ID in this script is fabricated (f"pay_{uuid4()}"),
-# so it can never correspond to a real Razorpay resource — verification
+# so it can never correspond to a real Razorpay resource: verification
 # always has to go through SimulationProvider here, explicitly, regardless
 # of whether real Razorpay Test Mode credentials happen to be configured
 # in this environment (build_default_payment_provider() would otherwise
@@ -366,7 +366,7 @@ def scenario_10_captured_amount_mismatch_escalated(session, redis_client, live):
     assert outcome.case.current_state is CaseState.FAILED, "scenario 10 setup expects a FAILED case first"
 
     # A later payment.captured event for a different amount than the case
-    # expects (e.g. a partial capture) — verification must never silently
+    # expects (e.g. a partial capture); verification must never silently
     # trust this; it escalates for a human to confirm rather than closing
     # the case as recovered.
     later = send_webhook(session, webhook_payload(
@@ -401,7 +401,7 @@ def main():
     parser.add_argument("--skip-reset", action="store_true", help="don't reset the database first")
     args = parser.parse_args()
 
-    print(f"Rayvex demo seed — database: {get_database_url()}\n")
+    print(f"Rayvex demo seed, database: {get_database_url()}\n")
 
     if not args.skip_reset:
         reset_database()

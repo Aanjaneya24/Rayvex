@@ -205,7 +205,7 @@ function StrategyComparisonPanel({ run }: { run: BenchmarkRun | null | undefined
         {run === null && (
           <div className="flex h-[220px] flex-col items-center justify-center gap-2 text-center">
             <p className="text-[14px] text-[var(--text-secondary)]">
-              No batch evaluation has been run yet — this panel has nothing real to show.
+              No batch evaluation has been run yet; this panel has nothing real to show.
             </p>
             <Link href="/evaluation" className="text-[14px] text-[var(--accent)]">
               Run one on the Evaluation page →
@@ -215,7 +215,7 @@ function StrategyComparisonPanel({ run }: { run: BenchmarkRun | null | undefined
         {run && (
           <>
             <p className="mb-2 text-[13px] text-[var(--text-secondary)]">
-              Most recent batch run — {run.case_count.toLocaleString("en-IN")} cases, seed {run.seed}
+              Most recent batch run: {run.case_count.toLocaleString("en-IN")} cases, seed {run.seed}
             </p>
             <StrategyComparisonChart naive={run.naive_retry} intelligent={run.intelligent_recovery} />
           </>

@@ -25,7 +25,7 @@ async def receive_razorpay_webhook(
     if not secret:
         raise HTTPException(
             status_code=500,
-            detail="RAZORPAY_WEBHOOK_SECRET is not configured — cannot verify webhook signatures.",
+            detail="RAZORPAY_WEBHOOK_SECRET is not configured; cannot verify webhook signatures.",
         )
 
     raw_body = await request.body()

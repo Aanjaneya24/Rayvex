@@ -101,8 +101,8 @@ def test_pipeline_records_the_scripted_decision_as_an_agent_decision_row(db_sess
 
 
 def test_pipeline_uses_an_injected_action_executor_not_just_the_default(db_session, redis_client):
-    """Confirms the executor is genuinely swappable — not an unused
-    parameter — by injecting one that reports a real (non-simulated)
+    """Confirms the executor is genuinely swappable, not an unused
+    parameter: by injecting one that reports a real (non-simulated)
     execution and checking that outcome actually reaches the transition
     the pipeline writes."""
     from models.enums import RecoveryAction as _RecoveryAction

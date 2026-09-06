@@ -33,7 +33,7 @@ def process_case_event(
     fixtures directly in tests).
 
     Idempotent against a case that already moved past the state this
-    message expected — a second event for a case already mid-pipeline (or
+    message expected: a second event for a case already mid-pipeline (or
     a redelivered message) is a no-op rather than an error, since another
     message may have already advanced it.
     """
@@ -46,7 +46,7 @@ def process_case_event(
             return None
         verification_result = reconcile_and_reverify(
             session, provider, case_id=case_id, correlation_id=correlation_id,
-            reason="a later payment.captured/order.paid event arrived after an earlier failure — reconciling",
+            reason="a later payment.captured/order.paid event arrived after an earlier failure, reconciling",
         )
         return CasePipelineResult(
             case=sm.get_case(case_id), decision=None, gate_result=None,

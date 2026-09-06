@@ -15,7 +15,7 @@ _DEAD_LETTER_QUEUE_SUFFIX = ".dead"
 
 def case_processing_queue_name() -> str:
     """Resolved at call time, not import time, and overridable via
-    CASE_PROCESSING_QUEUE_NAME — this is what lets the test suite use a
+    CASE_PROCESSING_QUEUE_NAME: this is what lets the test suite use a
     queue name completely separate from the one a real, independently
     running worker process consumes. Without this, a live worker started
     for manual testing races every test that publishes/reads the queue
@@ -76,7 +76,7 @@ def publish_case_event(
 def publish_case_event_standalone(
     *, case_id: uuid.UUID, correlation_id: uuid.UUID, reconciliation_needed: bool,
 ) -> None:
-    """Opens and closes its own short-lived connection — used by the
+    """Opens and closes its own short-lived connection: used by the
     webhook request handler, which has no long-lived channel of its own.
     A pooled/persistent channel would be faster under real load; a
     per-request connection is simpler and correct, matching the

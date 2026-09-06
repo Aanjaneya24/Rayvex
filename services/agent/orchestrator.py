@@ -31,7 +31,7 @@ def build_llm() -> BaseChatModel:
     raise RuntimeError(
         "Neither GROQ_API_KEY nor OPENAI_API_KEY is set. The agent orchestrator "
         "needs a real LLM backend configured in .env to run for real. Tests use "
-        "LangChain's FakeMessagesListChatModel instead — see tests/agent/fakes.py."
+        "LangChain's FakeMessagesListChatModel instead: see tests/agent/fakes.py."
     )
 
 

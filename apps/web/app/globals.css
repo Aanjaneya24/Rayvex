@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Design tokens — reference these custom properties from components,
+/* Design tokens: reference these custom properties from components,
    never hardcode hex values. Colors are tuned to meet WCAG AA (4.5:1). */
 :root {
   --surface-0: #F7F8FA;

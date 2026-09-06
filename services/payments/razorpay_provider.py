@@ -26,7 +26,7 @@ class RazorpayProvider:
                 raise RuntimeError(
                     "RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET must both be set to use "
                     "RazorpayProvider. Copy .env.example and fill them in with real Test "
-                    "Mode credentials, or use SimulationProvider instead — never fake "
+                    "Mode credentials, or use SimulationProvider instead; never fake "
                     "credentials to bypass this."
                 )
             self._client = razorpay.Client(auth=(key_id, key_secret))

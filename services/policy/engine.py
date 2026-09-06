@@ -23,7 +23,7 @@ def evaluate(context: PolicyContext, config: PolicyConfigSnapshot) -> PolicyVerd
             resulting_action=RecoveryAction.STOP,
             rule_id="suspicious_velocity_stop_and_escalate",
             reason=(
-                "Suspicious velocity detected for this customer/case — "
+                "Suspicious velocity detected for this customer/case: "
                 "automation stopped and the case requires human escalation, "
                 "regardless of the proposed action."
             ),
@@ -37,7 +37,7 @@ def evaluate(context: PolicyContext, config: PolicyConfigSnapshot) -> PolicyVerd
             rule_id="max_retry_count_exceeded",
             reason=(
                 f"Retry count ({context.retry_count}) has reached the configured "
-                f"maximum ({config.max_retry_count}) — stopping unconditionally."
+                f"maximum ({config.max_retry_count}); stopping unconditionally."
             ),
         )
 
@@ -52,7 +52,7 @@ def evaluate(context: PolicyContext, config: PolicyConfigSnapshot) -> PolicyVerd
             reason=(
                 f"This case has already had {context.intervention_count} automated "
                 f"interventions, at the configured cap of "
-                f"{config.max_interventions_per_case} — stopping."
+                f"{config.max_interventions_per_case}; stopping."
             ),
         )
 
@@ -78,7 +78,7 @@ def evaluate(context: PolicyContext, config: PolicyConfigSnapshot) -> PolicyVerd
             rule_id="amount_exceeds_max_automated_recovery_amount",
             reason=(
                 f"Amount {context.amount} exceeds the maximum automated recovery "
-                f"amount ({config.max_automated_recovery_amount}) — no automated "
+                f"amount ({config.max_automated_recovery_amount}); no automated "
                 f"action is authorized above this ceiling."
             ),
             requires_escalation=True,
@@ -91,7 +91,7 @@ def evaluate(context: PolicyContext, config: PolicyConfigSnapshot) -> PolicyVerd
             rule_id="high_value_requires_human_approval",
             reason=(
                 f"Amount {context.amount} exceeds the high-value threshold "
-                f"({config.high_value_threshold}) — requires human approval "
+                f"({config.high_value_threshold}); requires human approval "
                 f"before any action."
             ),
             requires_escalation=True,
@@ -107,7 +107,7 @@ def evaluate(context: PolicyContext, config: PolicyConfigSnapshot) -> PolicyVerd
             rule_id="prohibited_retry_failure_code",
             reason=(
                 f"Failure code '{context.failure_code}' is configured as a "
-                f"prohibited-retry category — blind retry is never allowed for "
+                f"prohibited-retry category; blind retry is never allowed for "
                 f"it, regardless of retry count, amount, risk, or cooldown."
             ),
         )

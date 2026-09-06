@@ -40,7 +40,7 @@ def test_verification_run_raises_rather_than_reporting_a_fabricated_outcome(unre
         mode = None
 
         def verify_payment(self, payment_id: str):
-            raise AssertionError("should never be called — the DB read before this fails first")
+            raise AssertionError("should never be called; the DB read before this fails first")
 
     with pytest.raises(OperationalError):
         run_verification(

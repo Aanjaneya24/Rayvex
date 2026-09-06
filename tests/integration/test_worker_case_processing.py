@@ -50,7 +50,7 @@ def test_a_newly_received_case_is_driven_through_the_full_pipeline(db_session, r
     """This is the exact gap the queue/worker exist to close: a case
     sitting at RECEIVED (as webhook ingestion alone leaves it) actually
     gets processed, the same way run_case_pipeline already proves it can
-    be — just reached via the message the worker consumes instead of a
+    be; just reached via the message the worker consumes instead of a
     direct call."""
     ensure_default_global_config(db_session)
     ensure_default_recovery_config(db_session)
@@ -112,7 +112,7 @@ def test_reconciliation_message_for_a_case_not_in_failed_is_a_no_op(db_session, 
 
 
 def test_a_second_message_for_an_already_advanced_case_is_a_no_op(db_session, redis_client):
-    """Simulates a redelivered or duplicate queue message — must never
+    """Simulates a redelivered or duplicate queue message; must never
     re-run the pipeline against a case that already moved past RECEIVED,
     since run_case_pipeline's own state-machine transitions would reject
     it anyway; this should be a clean no-op, not an error."""

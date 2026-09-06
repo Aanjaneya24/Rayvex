@@ -90,7 +90,7 @@ def review_escalated_case(
         if action is not None and original_proposed_action is not None and action != original_proposed_action:
             raise InvalidHumanReviewError(
                 f"APPROVE action ({action.value}) does not match the originally proposed "
-                f"action ({original_proposed_action.value}) — use OVERRIDE to authorize a "
+                f"action ({original_proposed_action.value}); use OVERRIDE to authorize a "
                 f"different action."
             )
     elif decision is HumanReviewDecision.OVERRIDE:

@@ -113,4 +113,4 @@ def _reason_for(outcome: VerificationOutcome, result: VerificationResult) -> str
         return f"Verified successful payment state (status={result.status!r}) via {result.mode.value}"
     if outcome is VerificationOutcome.FAILED:
         return f"Verified unsuccessful payment state (status={result.status!r}) via {result.mode.value}"
-    return f"Ambiguous or unexpected payment status ({result.status!r}) via {result.mode.value} — escalating"
+    return f"Ambiguous or unexpected payment status ({result.status!r}) via {result.mode.value}, escalating"

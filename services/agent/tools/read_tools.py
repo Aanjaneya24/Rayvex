@@ -86,7 +86,7 @@ def build_read_tools(session: Session, provider: PaymentProvider) -> list[Struct
         )
         global_stats = global_baseline_stats(session, failure_code=failure_code, action=recovery_action)
         return {
-            "dataset": "synthetic evaluation benchmark — not real-world performance",
+            "dataset": "synthetic evaluation benchmark, not real-world performance",
             "segment": {"successes": seg.successes, "total": seg.total, "rate": seg.empirical_rate},
             "global_for_failure_code": {
                 "successes": global_stats.successes, "total": global_stats.total,
@@ -101,14 +101,14 @@ def build_read_tools(session: Session, provider: PaymentProvider) -> list[Struct
         except Exception as exc:
             return {
                 "error": str(exc),
-                "note": "The provider check itself failed — treat this as unresolved, "
+                "note": "The provider check itself failed; treat this as unresolved, "
                         "not as a failure or a success.",
             }
         return {
             "mode": result.mode.value,
             "payment_id": result.payment_id,
             "status": result.status,
-            "note": "Status check only — does not mark anything as recovered.",
+            "note": "Status check only; does not mark anything as recovered.",
         }
 
     return [

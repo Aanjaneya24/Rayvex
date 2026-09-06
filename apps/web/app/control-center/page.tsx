@@ -142,7 +142,7 @@ function FieldRow({
       </div>
       {savedField === key && (
         <span className="animate-message-in text-[13px]" style={{ color: "var(--success-text)" }}>
-          Saved — now version {config?.version}
+          Saved, now version {config?.version}
         </span>
       )}
     </div>
@@ -336,11 +336,11 @@ export default function ControlCenterPage() {
           Policy version {config?.version} · merchant: {config?.merchant_id ?? "global default"}
         </p>
         <p className="mt-2 text-[13px] text-[var(--warning-text)]">
-          Changes apply to new decisions only — past cases are not retroactively altered.
+          Changes apply to new decisions only; past cases are not retroactively altered.
         </p>
         {!isReviewer && (
           <p className="mt-2 text-[13px] text-[var(--text-secondary)]">
-            You're signed in as viewer — you can preview a change's effect, but saving it
+            You're signed in as viewer; you can preview a change's effect, but saving it
             requires a reviewer.
           </p>
         )}
@@ -406,7 +406,7 @@ export default function ControlCenterPage() {
             {draft.prohibited_retry_failure_codes.map(failureTypeLabel).join(", ") || "none configured"}
           </p>
           <p className="mt-1 text-[12px] text-[var(--text-muted)]">
-            Read-only in this view — editing the list itself is not yet wired to the form.
+            Read-only in this view; editing the list itself is not yet wired to the form.
           </p>
         </div>
       </div>

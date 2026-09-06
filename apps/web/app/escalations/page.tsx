@@ -82,7 +82,7 @@ function ReviewPanel({ caseId, onReviewed }: { caseId: string; onReviewed: () =>
           {detail.agent_trace.map((a, i) => (
             <div key={i} className="rounded-control border border-[var(--border)] px-3 py-2">
               <div className="font-medium">
-                {humanize(a.proposed_action)} — confidence {(a.confidence * 100).toFixed(0)}%, risk{" "}
+                {humanize(a.proposed_action)}, confidence {(a.confidence * 100).toFixed(0)}%, risk{" "}
                 {humanize(a.risk_level)}
               </div>
               <div className="text-[var(--text-secondary)]">{a.reason}</div>
@@ -102,7 +102,7 @@ function ReviewPanel({ caseId, onReviewed }: { caseId: string; onReviewed: () =>
               <div key={i} className="rounded-control border border-[var(--border)] px-3 py-2">
                 <div className="font-medium">
                   {humanize(r.decision)} by {r.reviewer}
-                  {r.final_action ? ` — action: ${humanize(r.final_action)}` : ""}
+                  {r.final_action ? `, action: ${humanize(r.final_action)}` : ""}
                 </div>
                 <div className="text-[var(--text-secondary)]">{r.reason}</div>
               </div>
@@ -169,7 +169,7 @@ function ReviewPanel({ caseId, onReviewed }: { caseId: string; onReviewed: () =>
         </>
       ) : (
         <p className="text-[13px] text-[var(--text-secondary)]">
-          You're signed in as viewer — reviewing an escalation (approve, reject, or override)
+          You're signed in as viewer; reviewing an escalation (approve, reject, or override)
           requires the reviewer role.
         </p>
       )}

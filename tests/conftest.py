@@ -21,7 +21,7 @@ load_dotenv()
 @pytest.fixture(autouse=True, scope="session")
 def _isolated_case_processing_queue():
     # Applied to every test in the suite, not just ones that use
-    # rabbitmq_channel directly — anything that goes through the real
+    # rabbitmq_channel directly; anything that goes through the real
     # webhook route (e.g. test_api.py's TestClient) also publishes through
     # services/ingestion/queue.py, which resolves this name at call time.
     # Without this, running the test suite while a real worker process is
@@ -36,7 +36,7 @@ def _no_real_payment_provider_in_tests():
     # Tests must never depend on whatever happens to be in the developer's
     # .env: services/payments/provider_factory.py silently switches to
     # RazorpayProvider whenever RAZORPAY_KEY_ID/SECRET are set, which is
-    # correct for the real app but wrong for the test suite — a test that
+    # correct for the real app but wrong for the test suite; a test that
     # calls run_case_pipeline() without explicitly passing
     # provider=SimulationProvider(...) has no real Razorpay resource
     # behind its fabricated payment/order IDs, so it would get a real

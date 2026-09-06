@@ -27,7 +27,7 @@ def client(db_session, redis_client, monkeypatch):
     monkeypatch.setenv("DASHBOARD_CREDENTIALS", DASHBOARD_CREDENTIALS)
     # The app's own startup event bootstraps these from DASHBOARD_CREDENTIALS,
     # but it runs (if at all) against a real SessionLocal(), not this test's
-    # isolated db_session — so it's done explicitly here instead, the same
+    # isolated db_session, so it's done explicitly here instead, the same
     # way every other ensure_default_* fixture in this suite works.
     ensure_default_accounts(db_session)
     app.dependency_overrides[get_db] = lambda: db_session
@@ -74,7 +74,7 @@ def test_webhook_endpoint_processes_a_valid_signed_payload(client):
 
 def test_webhook_endpoint_publishes_a_case_processing_message(client, rabbitmq_channel):
     """A real webhook hitting the running API must not just create a Case
-    row and stop — it has to hand the case off for asynchronous
+    row and stop; it has to hand the case off for asynchronous
     processing, which in this architecture means a message lands on the
     case_processing queue."""
     import json as _json
@@ -268,7 +268,7 @@ def test_policy_config_get_and_update_round_trip(client, db_session):
     update_body = {**{k: v for k, v in current.items() if k != "version"}, "max_retry_count": 5}
 
     # a viewer (the client fixture's default identity) can read policy but
-    # must never be able to write it — only a reviewer can
+    # must never be able to write it; only a reviewer can
     viewer_put = client.put("/policy/config", json=update_body)
     assert viewer_put.status_code == 403
 

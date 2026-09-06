@@ -56,7 +56,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     setSubmitting(true);
     try {
       await api.register(username, password);
-      setInfo("Account created — signing you in…");
+      setInfo("Account created, signing you in…");
       setCredentials({ username, password });
       setStatus("checking");
       verify();

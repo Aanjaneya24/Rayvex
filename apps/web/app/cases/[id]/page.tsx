@@ -159,7 +159,7 @@ export default function CaseDetailPage() {
                   </div>
                   <div className="mt-1 text-[12px] text-[var(--text-muted)]">
                     {d.llm_call_count === 0 ? (
-                      <span>LLM skipped (deterministic policy) — $0.00, 0ms</span>
+                      <span>LLM skipped (deterministic policy), $0.00, 0ms</span>
                     ) : (
                       <span>
                         {d.llm_call_count} LLM call{d.llm_call_count === 1 ? "" : "s"} ·{" "}
@@ -198,7 +198,7 @@ export default function CaseDetailPage() {
               {detail.verification_proof.length > 0 && (
                 <p className="text-[12px] text-[var(--text-muted)]">
                   Every verification attempt, including ones that didn&apos;t change the case&apos;s
-                  state — that&apos;s why some entries here have no matching Timeline step.
+                  state; that&apos;s why some entries here have no matching Timeline step.
                 </p>
               )}
               {detail.verification_proof.length === 0 && (
@@ -285,7 +285,7 @@ function describeVerificationOutcome(
 ): { label: string; note: string } {
   if (outcome === "ERROR" && providerStatus === null) {
     return {
-      label: "No live provider status — verification call failed",
+      label: "No live provider status; verification call failed",
       note: "The provider call itself couldn't be completed (timeout/network error), not a claim about the payment. The case stays exactly where it was; verification will be retried.",
     };
   }

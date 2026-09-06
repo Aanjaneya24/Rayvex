@@ -23,7 +23,7 @@ class PromoteRequest(BaseModel):
 
 @router.post("/register", status_code=201)
 def register(body: RegisterRequest, request: Request, db: Session = Depends(get_db), redis_client=Depends(get_redis)):
-    # A new account can only ever be a viewer — the reviewer role, which
+    # A new account can only ever be a viewer; the reviewer role, which
     # can approve/reject/override real escalation decisions, is granted
     # separately via /auth/promote by an existing reviewer, never at signup.
     check_rate_limit(redis_client, request, window_seconds=3600, max_requests=20)

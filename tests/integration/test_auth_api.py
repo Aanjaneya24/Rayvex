@@ -40,7 +40,7 @@ def test_registered_account_can_immediately_authenticate(client):
 
 
 def test_registration_cannot_grant_reviewer_role(client):
-    """The request body has no role field at all — confirms there's no
+    """The request body has no role field at all; confirms there's no
     way to ask for reviewer at signup, not just that a default is applied."""
     response = client.post("/auth/register", json={"username": "newuser3", "password": "newuserpassword"})
     assert response.json()["role"] == "viewer"

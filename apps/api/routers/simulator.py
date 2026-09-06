@@ -52,7 +52,7 @@ def preview_policy_change(body: PreviewRequest, db: Session = Depends(get_db)):
         if value is not None
     }
     if not overrides:
-        raise HTTPException(status_code=400, detail="No threshold overrides supplied — nothing to preview.")
+        raise HTTPException(status_code=400, detail="No threshold overrides supplied; nothing to preview.")
     draft_policy = dataclasses.replace(baseline_policy, **overrides)
 
     baseline_run = run_benchmark(db, seed=body.seed, n=body.case_count, persist=False)

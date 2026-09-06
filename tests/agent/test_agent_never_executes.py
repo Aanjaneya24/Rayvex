@@ -28,7 +28,7 @@ def test_action_proposal_tools_have_no_session_or_redis_parameter_at_all():
     ]:
         params = set(inspect.signature(fn).parameters)
         assert params == {"case_id", "reason"}, (
-            f"{fn.__name__} has unexpected parameters {params} — an action "
+            f"{fn.__name__} has unexpected parameters {params}; an action "
             f"tool must only ever take the case_id and reason it reports, "
             f"nothing that could reach state."
         )
@@ -88,6 +88,6 @@ def test_agent_tools_module_imports_no_state_mutating_functions():
     for module in (proposal_tools, read_tools, reasoning_tools):
         source = _inspect.getsource(module)
         assert ".transition(" not in source, (
-            f"{module.__name__} calls .transition(...) directly — only "
+            f"{module.__name__} calls .transition(...) directly; only "
             f"services/recovery/action_gate.py may do that"
         )

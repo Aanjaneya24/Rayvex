@@ -110,7 +110,7 @@ def build_reasoning_tools(session: Session, redis_client: redis.Redis) -> list[S
             "resulting_action": verdict.resulting_action.value if verdict.resulting_action else None,
             "rule_id": verdict.rule_id, "reason": verdict.reason,
             "requires_escalation": verdict.requires_escalation,
-            "note": "PREVIEW ONLY — not persisted, not binding. Real enforcement happens later.",
+            "note": "PREVIEW ONLY, not persisted, not binding. Real enforcement happens later.",
         }
 
     def choose_recovery_action(case_id: str, risk_score: float) -> dict:

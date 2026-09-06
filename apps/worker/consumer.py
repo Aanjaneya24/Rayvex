@@ -30,7 +30,7 @@ def _on_message(channel, method, properties, body):
         logger.info("processed case %s (reconciliation=%s)", case_id, payload["reconciliation_needed"])
     except Exception:
         session.rollback()
-        logger.exception("failed to process case %s — routed to the dead-letter queue", case_id)
+        logger.exception("failed to process case %s, routed to the dead-letter queue", case_id)
         channel.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
     finally:
         session.close()

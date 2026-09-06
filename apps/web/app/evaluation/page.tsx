@@ -56,7 +56,7 @@ export default function EvaluationPage() {
         <h1 className="text-[22px] font-medium">Evaluation</h1>
         <p className="mt-1 text-[13px] text-[var(--text-secondary)]">
           Rayvex (intelligent recovery) vs. naive retry, run against the same seeded synthetic
-          case population — labeled as a synthetic benchmark, not real-world performance.
+          case population, labeled as a synthetic benchmark, not real-world performance.
         </p>
       </div>
 
@@ -98,7 +98,7 @@ export default function EvaluationPage() {
               </>
             ) : (
               <>
-                Starting {caseCount.toLocaleString("en-IN")} cases through both strategies — real
+                Starting {caseCount.toLocaleString("en-IN")} cases through both strategies, real
                 probability/policy queries per case, this can take a while for larger counts.
               </>
             )}

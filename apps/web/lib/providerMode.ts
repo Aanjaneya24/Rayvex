@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-// Cross-component signal for the top nav's provider mode pill — reuses
+// Cross-component signal for the top nav's provider mode pill, reuses
 // the mode already present in case detail's verification_proof rather
 // than a new endpoint. Only populated while a case detail page is open.
 
